@@ -34,7 +34,7 @@ The suite validates:
 - Bash syntax for `manage` and `scripts/check`;
 - release-tag consistency and fail-closed version mismatch behavior;
 - downloadable wheel and source artifacts only after Python and Docker validation;
-- tokenless TestPyPI and PyPI publishing only after the reusable validation workflow;
+- tokenless TestPyPI and protected-token PyPI publishing only after reusable validation;
 - wheel and source-distribution builds.
 
 Unit tests use an in-memory HTTP transport and do not depend on live GetBible availability. This keeps

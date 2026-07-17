@@ -4,9 +4,11 @@ The project has three deliberately separate package paths:
 
 1. Every successful `test` run produces downloadable GitHub Actions artifacts without publishing.
 2. A manually started `publish-testpypi` run validates and publishes to TestPyPI.
-3. Publishing a GitHub Release validates and publishes to production PyPI.
+3. A manual `publish-pypi` run or published GitHub Release validates and publishes to production
+   PyPI.
 
-Both indexes use Trusted Publishing, so GitHub stores no password or long-lived PyPI API token.
+TestPyPI uses Trusted Publishing. Production PyPI uses the protected `PYPI_API_TOKEN` Actions
+secret.
 
 ## Chosen identities
 
@@ -53,7 +55,8 @@ wheel.
    Reviewers are an optional security gate but make publication wait for approval.
 5. Protect `main` and require the `test` workflow before merging changes.
 
-Do not create a `PYPI_TOKEN` repository secret. The workflow does not read one.
+Create `PYPI_API_TOKEN` as a GitHub Actions **secret**, preferably inside the protected `pypi`
+environment. Do not add the token as a plain Actions variable.
 
 ## One-time TestPyPI setup
 
@@ -88,25 +91,17 @@ increment all version declarations before running the workflow again.
 
 ## One-time production PyPI setup
 
-If `getbible-mcp` has never been published, create a pending publisher from the PyPI account
-publishing page. Enter these values exactly:
+1. Create the protected GitHub environment named exactly `pypi`.
+2. Add an environment secret named exactly `PYPI_API_TOKEN`.
+3. For the first publication, use a PyPI token that is permitted to create the `getbible-mcp`
+   project. An account-scoped token is normally required because a project-scoped token cannot be
+   created before the project exists.
+4. After `1.0.0` creates the project, replace the environment secret with a token scoped only to
+   `getbible-mcp`.
 
-```text
-PyPI project name:  getbible-mcp
-Owner:              getbible
-Repository:         mcp
-Workflow name:      publish-pypi.yml
-Environment name:   pypi
-```
-
-PyPI creates the project on the first successful trusted publication. If the name is already owned
-by someone else, stop before releasing and choose a new package name consistently in
+The secret value must be the complete PyPI token, normally beginning with `pypi-`. If the package
+name is already owned by someone else, stop before publishing and choose a new name consistently in
 `pyproject.toml`, `server.json`, the workflow URL, and this documentation.
-
-For an existing PyPI project, add the same publisher under that project's publishing settings.
-
-Do not configure `test.yml` as the publisher: PyPI does not accept a reusable workflow as the
-Trusted Publisher identity. The top-level `publish-pypi.yml` workflow owns the OIDC publishing job.
 
 ## Prepare a production release
 
@@ -124,9 +119,9 @@ Verify locally, using the intended release tag:
 ./scripts/check
 ```
 
-Commit and push the release changes. In GitHub, create a Release targeting the tested commit and use
-a tag matching the project version, normally `v1.0.0`. Publishing the GitHub Release starts the
-`publish-pypi` workflow.
+Commit and push the release changes. For an immediate publication, open **Actions → publish-pypi →
+Run workflow**, enter `v1.0.0`, and run it from `main`. Alternatively, create a GitHub Release
+targeting the tested commit with the tag `v1.0.0`; publishing the Release starts the same workflow.
 
 ## What the production workflow does
 
@@ -137,8 +132,8 @@ a tag matching the project version, normally `v1.0.0`. Publishing the GitHub Rel
 5. Builds and smoke-tests a fresh wheel and source distribution from the tagged commit.
 6. Stores those exact files as one workflow artifact for 30 days.
 7. Verifies the release tag against all public version declarations.
-8. Gives only the final publishing job `id-token: write` permission.
-9. Publishes the verified artifact through `pypa/gh-action-pypi-publish` and PyPI OIDC.
+8. Exposes `PYPI_API_TOKEN` only to the final publishing action.
+9. Publishes the verified artifact through `pypa/gh-action-pypi-publish`.
 
 If any earlier job fails, the publishing job cannot start.
 

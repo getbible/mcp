@@ -3,6 +3,13 @@ name: publish-pypi
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag matching the package metadata
+        required: true
+        default: v1.0.0
+        type: string
 
 permissions:
   contents: read
@@ -23,7 +30,9 @@ jobs:
         with:
           python-version: "3.14"
       - name: Verify release tag and project versions
-        run: python scripts/verify_release.py "${{ github.event.release.tag_name }}"
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: python scripts/verify_release.py "$RELEASE_TAG"
 
   publish:
     name: Publish getbible-mcp to PyPI
@@ -32,13 +41,15 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/project/getbible-mcp/
-    permissions:
-      id-token: write
     steps:
       - name: Download verified distributions
         uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: dist/
-      - name: Publish with PyPI Trusted Publishing
+      - name: Publish with the protected PyPI API token
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          print-hash: true

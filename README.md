@@ -37,20 +37,6 @@ Remote: AI client ─ HTTPS ─ Nginx ─ Streamable HTTP process
 Local:  AI client ─ stdio ─ locally installed process
 ```
 
-## Why Python
-
-Python is an official **Tier-1 MCP SDK language**, alongside TypeScript, C#, and Go. TypeScript has no
-protocol or support-tier advantage. Python fits GetBible's Ubuntu/Nginx environment and its
-JSON/HTTP workload while remaining straightforward to operate.
-
-This repository pins the official stable Python SDK release `mcp==1.28.1`. The SDK's separate 2.x
-line is prerelease software at the time of this release and is deliberately not used in production.
-See [docs/SDK_DECISION.md](docs/SDK_DECISION.md).
-
-There is no Flask or Gunicorn layer. The official MCP SDK supplies the protocol implementation and
-ASGI application; Uvicorn runs it, systemd supervises it, and Nginx handles TLS, static documentation,
-request safety, and public routing.
-
 ## Public API access and translation rights
 
 GetBible API V2 is open worldwide. It requires no registration, account, API key, authentication,
@@ -171,14 +157,14 @@ GitHub keeps them for 30 days in the run's **Artifacts** section under the name
 workflow**, so a package can be downloaded and tested without publishing anything.
 
 The separate `publish-testpypi` workflow is manually triggered and publishes the same validated
-artifacts to TestPyPI through Trusted Publishing. Production publishing remains release-driven:
-when a GitHub Release is published, `publish-pypi.yml` repeats the full validation, verifies the
-release tag, and publishes the validated artifacts to PyPI.
+artifacts to TestPyPI. Production publishing can be started manually or by publishing a GitHub
+Release; `publish-pypi.yml` repeats the full validation, verifies the requested release tag, and
+publishes the validated artifacts to PyPI.
 
-Neither publishing workflow contains a password or long-lived API token. Before using them, create
-the `testpypi` and `pypi` GitHub Environments and register each exact workflow as a Trusted
-Publisher on its corresponding package index. See [docs/PUBLISHING.md](docs/PUBLISHING.md) for the
-download, TestPyPI, one-time setup, and production release procedures.
+TestPyPI uses Trusted Publishing. Production PyPI reads the project or account token only from the
+`PYPI_API_TOKEN` GitHub Actions secret in the protected `pypi` environment. See
+[docs/PUBLISHING.md](docs/PUBLISHING.md) for the download, TestPyPI, secret setup, and production
+release procedures.
 
 ## Development
 
@@ -214,7 +200,6 @@ manage                  Pure Bash deployment and lifecycle manager
 - [Security model](SECURITY.md)
 - [Testing](docs/TESTING.md)
 - [Publishing to PyPI](docs/PUBLISHING.md)
-- [SDK decision](docs/SDK_DECISION.md)
 - [MCP Registry publishing](docs/REGISTRY.md)
 
 ## Versioning
