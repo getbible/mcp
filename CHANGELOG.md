@@ -10,5 +10,7 @@
 - Added Nginx static discovery/documentation and exact `/v2` MCP routing.
 - Added GPL-2.0-or-later software licensing and canonical `github.com/getbible/mcp` metadata.
 - Added release-gated, tokenless PyPI Trusted Publishing for the `getbible-mcp` package.
+- Added 30-day downloadable wheel/source artifacts on every successful CI run and manual,
+  tokenless TestPyPI publishing for pre-release installation tests.
 - Added hardened systemd deployment, atomic release manager, rollback, health checks, and Docker.
 - Added unit, schema, stdio, Streamable HTTP, static-document, and packaging tests.

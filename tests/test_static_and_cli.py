@@ -55,10 +55,36 @@ def test_nginx_routes_only_exact_v2_to_application() -> None:
     assert "limit_req" not in config
 
 
-def test_pypi_workflow_uses_trusted_publishing_after_validation() -> None:
+def test_test_workflow_builds_downloadable_packages_after_all_validation() -> None:
+    workflow = (ROOT / ".github/workflows/test.yml").read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in workflow
+    assert 'python: ["3.11", "3.12", "3.13", "3.14"]' in workflow
+    assert "needs: [python, docker]" in workflow
+    assert "Smoke-test the built wheel" in workflow
+    assert "actions/upload-artifact@v7" in workflow
+    assert "name: python-package-distributions" in workflow
+    assert "retention-days: 30" in workflow
+
+
+def test_testpypi_workflow_is_manual_and_tokenless() -> None:
+    workflow = (ROOT / ".github/workflows/publish-testpypi.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "workflow_dispatch:" in workflow
+    assert "uses: ./.github/workflows/test.yml" in workflow
+    assert "needs: validate" in workflow
+    assert "name: testpypi" in workflow
+    assert "id-token: write" in workflow
+    assert "repository-url: https://test.pypi.org/legacy/" in workflow
+    assert "PYPI_TOKEN" not in workflow
+
+
+def test_pypi_workflow_uses_validated_artifact_and_trusted_publishing() -> None:
     workflow = (ROOT / ".github/workflows/publish-pypi.yml").read_text(encoding="utf-8")
     assert "needs: validate" in workflow
-    assert "needs: package" in workflow
+    assert "needs: [validate, release-check]" in workflow
+    assert "actions/download-artifact@v8" in workflow
+    assert "name: python-package-distributions" in workflow
     assert "id-token: write" in workflow
     assert "pypa/gh-action-pypi-publish@release/v1" in workflow
     assert "PYPI_TOKEN" not in workflow
@@ -66,6 +92,7 @@ def test_pypi_workflow_uses_trusted_publishing_after_validation() -> None:
 
 def test_docker_build_includes_required_license_metadata() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert dockerfile.count("FROM python:3.14-slim-bookworm") == 2
     assert "COPY requirements.txt pyproject.toml README.md LICENSE ./" in dockerfile
 
 

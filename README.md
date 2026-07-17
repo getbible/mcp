@@ -163,17 +163,22 @@ slash endpoint `/v2` is proxied to the MCP process.
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before the first installation.
 
-## Automatic PyPI publishing
+## Downloadable packages, TestPyPI, and PyPI
 
-Publishing is secretless and release-driven. When a GitHub Release is published, the
-`publish-pypi.yml` workflow runs the full Python-version test matrix, both MCP transport tests, the
-Docker build, and release-version consistency checks. Only after those jobs pass does it build the
-wheel and source distribution and publish `getbible-mcp` through PyPI Trusted Publishing.
+Every successful `test` workflow run builds and smoke-tests one wheel and one source distribution.
+GitHub keeps them for 30 days in the run's **Artifacts** section under the name
+`python-package-distributions`. This includes runs started manually from **Actions → test → Run
+workflow**, so a package can be downloaded and tested without publishing anything.
 
-The workflow contains no PyPI password or long-lived API token. Before the first release, create the
-`pypi` GitHub Environment and register `getbible/mcp`, workflow `publish-pypi.yml`, environment
-`pypi`, and project `getbible-mcp` as a PyPI Trusted Publisher. See
-[docs/PUBLISHING.md](docs/PUBLISHING.md) for the exact one-time setup and release procedure.
+The separate `publish-testpypi` workflow is manually triggered and publishes the same validated
+artifacts to TestPyPI through Trusted Publishing. Production publishing remains release-driven:
+when a GitHub Release is published, `publish-pypi.yml` repeats the full validation, verifies the
+release tag, and publishes the validated artifacts to PyPI.
+
+Neither publishing workflow contains a password or long-lived API token. Before using them, create
+the `testpypi` and `pypi` GitHub Environments and register each exact workflow as a Trusted
+Publisher on its corresponding package index. See [docs/PUBLISHING.md](docs/PUBLISHING.md) for the
+download, TestPyPI, one-time setup, and production release procedures.
 
 ## Development
 

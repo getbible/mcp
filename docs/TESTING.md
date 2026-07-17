@@ -33,7 +33,8 @@ The suite validates:
 - CLI defaults and version output;
 - Bash syntax for `manage` and `scripts/check`;
 - release-tag consistency and fail-closed version mismatch behavior;
-- tokenless PyPI publishing only after the reusable validation workflow;
+- downloadable wheel and source artifacts only after Python and Docker validation;
+- tokenless TestPyPI and PyPI publishing only after the reusable validation workflow;
 - wheel and source-distribution builds.
 
 Unit tests use an in-memory HTTP transport and do not depend on live GetBible availability. This keeps
@@ -54,5 +55,6 @@ Before deploying a release:
 8. Validate Nginx configuration with `nginx -t`.
 9. Deploy using `sudo ./manage update` and verify public health.
 
-Publishing a GitHub Release performs the complete validation again before PyPI upload; see
+Every successful test run stores downloadable distributions for 30 days. Manual TestPyPI and
+GitHub Release production publishing both perform the complete validation again; see
 [PUBLISHING.md](PUBLISHING.md).
