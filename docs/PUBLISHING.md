@@ -7,7 +7,7 @@ The project has three deliberately separate package paths:
 3. A manual `publish-pypi` run or published GitHub Release validates and publishes to production
    PyPI.
 
-TestPyPI uses Trusted Publishing. Production PyPI uses the protected `PYPI_API_TOKEN` Actions
+TestPyPI uses Trusted Publishing. Production PyPI uses the protected `PYPI_MCP_TOKEN` Actions
 secret.
 
 ## Chosen identities
@@ -55,7 +55,7 @@ wheel.
    Reviewers are an optional security gate but make publication wait for approval.
 5. Protect `main` and require the `test` workflow before merging changes.
 
-Create `PYPI_API_TOKEN` as a GitHub Actions **secret**, preferably inside the protected `pypi`
+Create `PYPI_MCP_TOKEN` as a GitHub Actions **secret**, preferably inside the protected `pypi`
 environment. Do not add the token as a plain Actions variable.
 
 ## One-time TestPyPI setup
@@ -92,7 +92,7 @@ increment all version declarations before running the workflow again.
 ## One-time production PyPI setup
 
 1. Create the protected GitHub environment named exactly `pypi`.
-2. Add an environment secret named exactly `PYPI_API_TOKEN`.
+2. Add an environment secret named exactly `PYPI_MCP_TOKEN`.
 3. For the first publication, use a PyPI token that is permitted to create the `getbible-mcp`
    project. An account-scoped token is normally required because a project-scoped token cannot be
    created before the project exists.
@@ -132,7 +132,7 @@ targeting the tested commit with the tag `v1.0.0`; publishing the Release starts
 5. Builds and smoke-tests a fresh wheel and source distribution from the tagged commit.
 6. Stores those exact files as one workflow artifact for 30 days.
 7. Verifies the release tag against all public version declarations.
-8. Exposes `PYPI_API_TOKEN` only to the final publishing action.
+8. Exposes `PYPI_MCP_TOKEN` only to the final publishing action.
 9. Publishes the verified artifact through `pypa/gh-action-pypi-publish`.
 
 If any earlier job fails, the publishing job cannot start.

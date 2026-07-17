@@ -13,6 +13,6 @@
 - Added 30-day downloadable wheel/source artifacts on every successful CI run and manual,
   tokenless TestPyPI publishing for pre-release installation tests.
 - Added manual production publishing with release-tag validation and the protected
-  `PYPI_API_TOKEN` Actions secret.
+  `PYPI_MCP_TOKEN` Actions secret.
 - Added hardened systemd deployment, atomic release manager, rollback, health checks, and Docker.
 - Added unit, schema, stdio, Streamable HTTP, static-document, and packaging tests.

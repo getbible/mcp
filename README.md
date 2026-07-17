@@ -162,7 +162,7 @@ Release; `publish-pypi.yml` repeats the full validation, verifies the requested 
 publishes the validated artifacts to PyPI.
 
 TestPyPI uses Trusted Publishing. Production PyPI reads the project or account token only from the
-`PYPI_API_TOKEN` GitHub Actions secret in the protected `pypi` environment. See
+`PYPI_MCP_TOKEN` GitHub Actions secret in the protected `pypi` environment. See
 [docs/PUBLISHING.md](docs/PUBLISHING.md) for the download, TestPyPI, secret setup, and production
 release procedures.
 

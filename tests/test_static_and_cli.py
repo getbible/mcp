@@ -88,7 +88,7 @@ def test_pypi_workflow_uses_validated_artifact_and_protected_token() -> None:
     assert "actions/download-artifact@v8" in workflow
     assert "name: python-package-distributions" in workflow
     assert "pypa/gh-action-pypi-publish@release/v1" in workflow
-    assert "password: ${{ secrets.PYPI_API_TOKEN }}" in workflow
+    assert "password: ${{ secrets.PYPI_MCP_TOKEN }}" in workflow
     assert "print-hash: true" in workflow
 
 
