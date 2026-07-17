@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "net.getbible/mcp",
+  "title": "GetBible",
+  "description": "Read-only, hash-aware scripture access through GetBible API V2.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.getbible.net/v2"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "getbible-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

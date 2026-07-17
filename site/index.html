@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GetBible MCP</title>
+  <meta name="description" content="Official Model Context Protocol access to GetBible API V2.">
+  <style>
+    :root { color-scheme: light dark; --accent: #b9933f; --page: #11151b; --card: #1b222c; --text: #f3f5f7; --muted: #b9c2cc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font: 17px/1.65 system-ui, sans-serif; color: var(--text); background: radial-gradient(circle at top, #27303d, var(--page) 55%); }
+    main { width: min(920px, calc(100% - 40px)); margin: 0 auto; padding: 11vh 0 80px; }
+    article { padding: clamp(28px, 6vw, 64px); border: 1px solid #394453; border-radius: 22px; background: color-mix(in srgb, var(--card) 94%, transparent); box-shadow: 0 30px 80px #0008; }
+    h1 { margin: 0 0 8px; font: 700 clamp(42px, 8vw, 76px)/1.05 Georgia, serif; letter-spacing: -.04em; }
+    h2 { margin-top: 42px; }
+    .eyebrow { color: var(--accent); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .lead { max-width: 720px; color: var(--muted); font-size: 1.18rem; }
+    code { padding: .16em .38em; border-radius: 6px; background: #07090d; color: #f7df9d; }
+    a { color: #f0ca74; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 30px 0; }
+    .button { display: inline-block; padding: 11px 17px; border: 1px solid var(--accent); border-radius: 10px; text-decoration: none; font-weight: 700; }
+    .button.primary { color: #17120a; background: var(--accent); }
+    ul { padding-left: 22px; }
+    footer { margin-top: 30px; color: var(--muted); font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <article>
+      <div class="eyebrow">GetBible · Model Context Protocol</div>
+      <h1>Scripture access built for AI.</h1>
+      <p class="lead">GetBible MCP gives compatible AI clients structured, read-only access to GetBible API V2 through a public Streamable HTTP service or a locally installed stdio server.</p>
+      <p>No account, API key, authentication, subscription, or request quota is required.</p>
+      <div class="actions">
+        <a class="button primary" href="/v2/">Read the V2 documentation</a>
+        <a class="button" href="/v2/llms.txt">AI documentation</a>
+        <a class="button" href="/v2/manifest.json">Machine manifest</a>
+      </div>
+      <h2>Remote connection</h2>
+      <p>Configure an MCP client with the exact Streamable HTTP URL:</p>
+      <p><code>https://mcp.getbible.net/v2</code></p>
+      <h2>Local connection</h2>
+      <p>Install the GetBible MCP package and configure the client to launch:</p>
+      <p><code>getbible-mcp --transport stdio</code></p>
+      <h2>Scripture integrity</h2>
+      <p>Every cacheable scripture result is tied to its translation, book, or chapter hash. Integrations are instructed to revalidate stored hashes at least weekly and atomically refresh stale content when a hash changes.</p>
+      <p>Following this synchronization cycle is a condition of using the API. Each translation carries its applicable copyright information in the returned metadata; GetBible adds no separate copyright layer to scripture text.</p>
+      <footer>GetBible · <a href="https://getbible.life">getbible.life</a></footer>
+    </article>
+  </main>
+</body>
+</html>

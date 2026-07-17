@@ -1,0 +1,14 @@
+{
+  "server": "GetBible API V2",
+  "note": "The live MCP tools/list response is authoritative. Access is public with no API key or request quota. Preserve each translation's returned copyright metadata and honor the required hash cycle.",
+  "tools": [
+    {"name": "list_translations", "purpose": "Discover translations, copyright information, metadata, scope, and catalog hashes."},
+    {"name": "list_books", "purpose": "Discover numbered and localized book names and hashes."},
+    {"name": "list_chapters", "purpose": "Discover chapters and chapter hashes."},
+    {"name": "get_scripture", "purpose": "Retrieve a complete translation, book, or chapter with a consistency-checked hash."},
+    {"name": "query_verses", "purpose": "Retrieve selected or grouped verses and participating chapter hashes."},
+    {"name": "get_hash", "purpose": "Retrieve one exact translation, book, or chapter hash."},
+    {"name": "get_hash_manifest", "purpose": "Retrieve bulk checksum data for an efficient scheduled sweep."},
+    {"name": "check_for_updates", "purpose": "Compare cached hashes and return required invalidation actions."}
+  ]
+}

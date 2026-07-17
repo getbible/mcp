@@ -1,0 +1,140 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GetBible API V2",
+    "version": "2.0",
+    "description": "Public native HTTP endpoints used by GetBible MCP. No account, API key, authentication, subscription, or request quota is required. Translation return data carries the applicable copyright metadata. The MCP endpoint itself is described by the Model Context Protocol, not OpenAPI."
+  },
+  "security": [],
+  "servers": [
+    {"url": "https://api.getbible.net", "description": "GetBible Main API"}
+  ],
+  "paths": {
+    "/v2/translations.json": {
+      "get": {
+        "operationId": "listTranslations",
+        "summary": "List all translations with metadata, copyright information, and hashes",
+        "responses": {"200": {"description": "Translation catalog", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}}
+      }
+    },
+    "/v2/checksum.json": {
+      "get": {
+        "operationId": "getTranslationChecksums",
+        "summary": "Get the translation checksum manifest",
+        "responses": {"200": {"description": "Checksum manifest", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}}
+      }
+    },
+    "/v2/{translation}.json": {
+      "get": {
+        "operationId": "getTranslation",
+        "summary": "Get a complete translation",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}],
+        "responses": {"200": {"description": "Complete translation JSON", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}, "404": {"description": "Translation not found"}}
+      }
+    },
+    "/v2/{translation}.sha": {
+      "get": {
+        "operationId": "getTranslationHash",
+        "summary": "Get one translation hash",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}],
+        "responses": {"200": {"description": "Opaque 40-character content-version hash", "content": {"text/plain": {"schema": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"}}}}}
+      }
+    },
+    "/v2/{translation}/books.json": {
+      "get": {
+        "operationId": "listBooks",
+        "summary": "List the books and hashes in a translation",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}],
+        "responses": {"200": {"description": "Book mapping", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}}
+      }
+    },
+    "/v2/{translation}/checksum.json": {
+      "get": {
+        "operationId": "getBookChecksums",
+        "summary": "Get all book checksums in a translation",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}],
+        "responses": {"200": {"description": "Book checksum manifest", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}}
+      }
+    },
+    "/v2/{translation}/{book}.json": {
+      "get": {
+        "operationId": "getBook",
+        "summary": "Get a complete book",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}, {"$ref": "#/components/parameters/Book"}],
+        "responses": {"200": {"description": "Complete book JSON", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}, "404": {"description": "Book not found"}}
+      }
+    },
+    "/v2/{translation}/{book}.sha": {
+      "get": {
+        "operationId": "getBookHash",
+        "summary": "Get one book hash",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}, {"$ref": "#/components/parameters/Book"}],
+        "responses": {"200": {"description": "Opaque 40-character content-version hash", "content": {"text/plain": {"schema": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"}}}}}
+      }
+    },
+    "/v2/{translation}/{book}/chapters.json": {
+      "get": {
+        "operationId": "listChapters",
+        "summary": "List chapters and hashes in a book",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}, {"$ref": "#/components/parameters/Book"}],
+        "responses": {"200": {"description": "Chapter mapping", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}}
+      }
+    },
+    "/v2/{translation}/{book}/checksum.json": {
+      "get": {
+        "operationId": "getChapterChecksums",
+        "summary": "Get all chapter checksums in a book",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}, {"$ref": "#/components/parameters/Book"}],
+        "responses": {"200": {"description": "Chapter checksum manifest", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}}
+      }
+    },
+    "/v2/{translation}/{book}/{chapter}.json": {
+      "get": {
+        "operationId": "getChapter",
+        "summary": "Get a complete chapter",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}, {"$ref": "#/components/parameters/Book"}, {"$ref": "#/components/parameters/Chapter"}],
+        "responses": {"200": {"description": "Complete chapter JSON", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}, "404": {"description": "Chapter not found"}}
+      }
+    },
+    "/v2/{translation}/{book}/{chapter}.sha": {
+      "get": {
+        "operationId": "getChapterHash",
+        "summary": "Get one chapter hash",
+        "parameters": [{"$ref": "#/components/parameters/Translation"}, {"$ref": "#/components/parameters/Book"}, {"$ref": "#/components/parameters/Chapter"}],
+        "responses": {"200": {"description": "Opaque 40-character content-version hash", "content": {"text/plain": {"schema": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"}}}}}
+      }
+    },
+    "/v2/{translation}/{references}": {
+      "get": {
+        "operationId": "queryVerses",
+        "summary": "Query selected or grouped verses",
+        "servers": [{"url": "https://query.getbible.net", "description": "GetBible Query API"}],
+        "parameters": [
+          {"$ref": "#/components/parameters/Translation"},
+          {"name": "references", "in": "path", "required": true, "description": "URL-encoded references such as John 3:16; 1 John 3:16-19", "schema": {"type": "string", "minLength": 1, "maxLength": 4096}}
+        ],
+        "responses": {"200": {"description": "Selected verses", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JsonValue"}}}}, "400": {"description": "Invalid reference"}}
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Translation": {"name": "translation", "in": "path", "required": true, "description": "Translation abbreviation discovered from translations.json", "schema": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"}},
+      "Book": {"name": "book", "in": "path", "required": true, "description": "Book number discovered from the translation's books.json", "schema": {"type": "integer", "minimum": 1, "maximum": 200}},
+      "Chapter": {"name": "chapter", "in": "path", "required": true, "description": "Chapter number discovered from chapters.json", "schema": {"type": "integer", "minimum": 1, "maximum": 300}}
+    },
+    "schemas": {
+      "JsonValue": {
+        "description": "The native GetBible JSON structure for this endpoint. See live examples and mapping helpers.",
+        "oneOf": [
+          {"type": "object", "additionalProperties": true},
+          {"type": "array", "items": {}},
+          {"type": "string"},
+          {"type": "number"},
+          {"type": "boolean"},
+          {"type": "null"}
+        ]
+      }
+    }
+  }
+}

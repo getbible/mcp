@@ -1,0 +1,16 @@
+{
+  "name": "GetBible MCP",
+  "description": "Read-only Model Context Protocol access to GetBible API V2.",
+  "website": "https://getbible.life",
+  "documentation": "https://mcp.getbible.net/v2/",
+  "access": "Public; no account, API key, authentication, or request quota",
+  "versions": {
+    "v2": {
+      "api_version": "v2",
+      "status": "stable",
+      "streamable_http": "https://mcp.getbible.net/v2",
+      "stdio_command": "getbible-mcp --transport stdio",
+      "manifest": "https://mcp.getbible.net/v2/manifest.json"
+    }
+  }
+}

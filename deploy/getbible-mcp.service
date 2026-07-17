@@ -1,0 +1,41 @@
+[Unit]
+Description=GetBible API V2 MCP Streamable HTTP server
+Documentation=https://mcp.getbible.net/v2/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=getbible-mcp
+Group=getbible-mcp
+WorkingDirectory=/opt/getbible-mcp/current
+EnvironmentFile=/etc/getbible-mcp.env
+ExecStart=/opt/getbible-mcp/current/.venv/bin/uvicorn getbible_mcp.server:app --host ${GETBIBLE_MCP_BIND_HOST} --port ${GETBIBLE_MCP_BIND_PORT} --workers ${GETBIBLE_MCP_WORKERS} --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=45s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+LimitNOFILE=65536
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

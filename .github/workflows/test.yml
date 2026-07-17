@@ -1,0 +1,53 @@
+name: test
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Create isolated environment
+        run: python -m venv .venv
+      - name: Install
+        run: |
+          .venv/bin/python -m pip install -r requirements-dev.txt
+          .venv/bin/python -m pip install --no-deps -e .
+      - name: Lint
+        run: .venv/bin/python -m ruff check .
+      - name: Type check
+        run: .venv/bin/python -m mypy src
+      - name: Test both MCP transports
+        run: .venv/bin/python -m pytest
+      - name: Build distributions
+        run: .venv/bin/python -m build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: getbible-mcp:test

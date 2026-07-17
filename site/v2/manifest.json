@@ -1,0 +1,44 @@
+{
+  "name": "GetBible API V2",
+  "registry_name": "net.getbible/mcp",
+  "mcp_server_version": "1.0.0",
+  "api_version": "v2",
+  "status": "stable",
+  "transports": {
+    "streamable_http": {
+      "url": "https://mcp.getbible.net/v2",
+      "public": true
+    },
+    "stdio": {
+      "command": "getbible-mcp",
+      "args": ["--transport", "stdio"],
+      "installation": "https://mcp.getbible.net/v2/#local-installation"
+    }
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": true
+  },
+  "tools": "https://mcp.getbible.net/v2/tool-catalog.json",
+  "resources": [
+    "getbible://docs/api-v2",
+    "getbible://docs/cache-policy",
+    "getbible://docs/usage-policy"
+  ],
+  "prompts": ["design_getbible_integration"],
+  "documentation": {
+    "ai": "https://mcp.getbible.net/v2/llms.txt",
+    "api": "https://mcp.getbible.net/v2/api.md",
+    "usage_policy": "https://mcp.getbible.net/v2/usage-policy.md",
+    "cache_policy": "https://mcp.getbible.net/v2/cache-policy.md",
+    "examples": "https://mcp.getbible.net/v2/examples.md",
+    "openapi": "https://mcp.getbible.net/v2/openapi.json"
+  },
+  "access": {
+    "public": true,
+    "authentication": false,
+    "api_key": false,
+    "request_quota": false
+  }
+}

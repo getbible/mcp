@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GetBible MCP V2</title>
+  <meta name="description" content="Documentation for GetBible API V2 over Model Context Protocol.">
+  <style>
+    :root { color-scheme: light dark; --accent: #b9933f; --page: #10141a; --card: #1b222c; --text: #f3f5f7; --muted: #b9c2cc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.65 system-ui, sans-serif; color: var(--text); background: var(--page); }
+    main { width: min(1000px, calc(100% - 40px)); margin: auto; padding: 60px 0 90px; }
+    header, section { padding: clamp(24px, 5vw, 48px); border: 1px solid #364251; border-radius: 18px; background: var(--card); }
+    section { margin-top: 22px; }
+    h1 { margin: 0; font: 700 clamp(38px, 7vw, 64px)/1.05 Georgia, serif; }
+    h2 { margin-top: 0; }
+    p, li { color: var(--muted); }
+    code { padding: .15em .38em; border-radius: 5px; color: #f4d98e; background: #090b0f; }
+    a { color: #f0ca74; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .grid a { display: block; padding: 18px; border: 1px solid #465568; border-radius: 12px; text-decoration: none; }
+    .warning { border-left: 5px solid var(--accent); padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p><a href="/">GetBible MCP</a> / V2</p>
+      <h1>GetBible MCP V2</h1>
+      <p>One tool contract, available remotely through Streamable HTTP and locally through stdio.</p>
+      <p>Public access with no account, API key, authentication, subscription, or request quota.</p>
+      <p><strong>Remote endpoint:</strong> <code>https://mcp.getbible.net/v2</code></p>
+      <p><strong>Local command:</strong> <code>getbible-mcp --transport stdio</code></p>
+    </header>
+    <section>
+      <h2>Documentation</h2>
+      <div class="grid">
+        <a href="llms.txt"><strong>llms.txt</strong><br>Compact entry point for AI systems.</a>
+        <a href="manifest.json"><strong>manifest.json</strong><br>Transports, tools, resources, and canonical URLs.</a>
+        <a href="api.md"><strong>API guide</strong><br>Main API, Query API, mappings, and hashes.</a>
+        <a href="usage-policy.md"><strong>Public use policy</strong><br>Open access, translation rights, and synchronization agreement.</a>
+        <a href="cache-policy.md"><strong>Cache policy</strong><br>Mandatory revalidation and invalidation rules.</a>
+        <a href="examples.md"><strong>Examples</strong><br>Representative tool selections and calls.</a>
+        <a href="openapi.json"><strong>OpenAPI</strong><br>Machine-readable native HTTP API description.</a>
+        <a href="tool-catalog.json"><strong>Tool catalog</strong><br>Static overview of the live MCP tools.</a>
+      </div>
+    </section>
+    <section class="warning">
+      <h2>Required cache integrity</h2>
+      <p>Store every cached scripture payload with the hash for its exact scope. Revalidate at least weekly. When a hash changes, invalidate that scope and every cached descendant, then atomically replace the stale content.</p>
+      <p>This synchronization cycle is a condition of the GetBible API usage agreement. Preserve the copyright metadata returned for each translation.</p>
+    </section>
+  </main>
+</body>
+</html>

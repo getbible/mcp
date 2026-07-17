@@ -1,0 +1,44 @@
+# GetBible MCP V2
+
+GetBible MCP provides read-only access to GetBible API V2 for AI clients.
+
+Canonical remote MCP endpoint:
+https://mcp.getbible.net/v2
+
+Local stdio command after installing the package:
+getbible-mcp --transport stdio
+
+Both transports expose identical tools, resources, prompts, schemas, and behavior.
+
+GetBible API V2 is public and requires no account, API key, authentication, subscription, payment,
+or request quota. Each translation's returned metadata contains its applicable copyright
+information. Preserve it. GetBible adds no extra copyright layer to scripture text.
+
+## Essential documents
+
+- API guide: https://mcp.getbible.net/v2/api.md
+- Public use policy: https://mcp.getbible.net/v2/usage-policy.md
+- Mandatory cache policy: https://mcp.getbible.net/v2/cache-policy.md
+- MCP manifest: https://mcp.getbible.net/v2/manifest.json
+- Tool catalog: https://mcp.getbible.net/v2/tool-catalog.json
+- Native API OpenAPI document: https://mcp.getbible.net/v2/openapi.json
+- Examples: https://mcp.getbible.net/v2/examples.md
+
+## Tool selection
+
+- list_translations: discover translations, language, scope, metadata, and hashes.
+- list_books: discover numbered and localized book names for one translation.
+- list_chapters: discover chapters and hashes for one translated book.
+- get_scripture: retrieve a whole translation, book, or chapter with its checked hash.
+- query_verses: retrieve selected or grouped verses and participating chapter hashes.
+- get_hash: retrieve one translation, book, or chapter hash.
+- get_hash_manifest: retrieve bulk checksum data for scheduled cache validation.
+- check_for_updates: compare stored hashes with current values and receive invalidation actions.
+
+## Mandatory rule
+
+Every persisted scripture payload must be stored with the hash for its exact translation, book, or
+chapter scope. Revalidate at least weekly. If a hash changes, invalidate the changed scope and all
+cached descendants, then atomically fetch and store fresh scripture plus its new hash. Query results
+depend on every participating chapter hash. Treat hashes as opaque version tokens, not signatures.
+Honoring this hash-validation cycle is a condition of the GetBible API usage agreement.
