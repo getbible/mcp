@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -10,7 +10,7 @@ COPY src ./src
 RUN /opt/venv/bin/python -m pip install -r requirements.txt \
     && /opt/venv/bin/python -m pip install --no-deps .
 
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 LABEL io.modelcontextprotocol.server.name="net.getbible/mcp"
 
