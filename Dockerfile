@@ -5,7 +5,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 
 WORKDIR /build
 RUN python -m venv /opt/venv
-COPY requirements.txt pyproject.toml README.md ./
+COPY requirements.txt pyproject.toml README.md LICENSE ./
 COPY src ./src
 RUN /opt/venv/bin/python -m pip install -r requirements.txt \
     && /opt/venv/bin/python -m pip install --no-deps .

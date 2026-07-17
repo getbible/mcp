@@ -64,6 +64,11 @@ def test_pypi_workflow_uses_trusted_publishing_after_validation() -> None:
     assert "PYPI_TOKEN" not in workflow
 
 
+def test_docker_build_includes_required_license_metadata() -> None:
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY requirements.txt pyproject.toml README.md LICENSE ./" in dockerfile
+
+
 def test_cli_defaults_to_stdio(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GETBIBLE_MCP_TRANSPORT", raising=False)
     assert build_parser().parse_args([]).transport == "stdio"
