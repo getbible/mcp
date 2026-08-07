@@ -15,7 +15,7 @@ httpx==0.28.1
 idna==3.18
 jsonschema-specifications==2025.9.1
 jsonschema==4.26.0
-mcp==1.28.1
+mcp==2.0.0
 pycparser==3.0
 pydantic-settings==2.14.2
 pydantic==2.13.4
