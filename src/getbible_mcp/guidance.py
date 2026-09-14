@@ -4,6 +4,7 @@ SERVER_INSTRUCTIONS = """GetBible is a read-only platform covering Bible, refere
 plus dictionaries, commentaries, and bookmarks v1. Use discover_apis to select a service/version,
 describe_api_operation to inspect exact parameters and response schemas, then call_api_operation to
 execute any documented operation. Full OpenAPI documents are available as getbible://openapi/{service}/{version}.
+Project and API documentation: https://getBible.net. MCP usage guide: https://getBible.net/mcp.
 Common scripture tools default to v3; select api_version='v2' for v2 data. The official Streamable HTTP
 endpoint is https://mcp.getbible.net/; connect at its root without appending /mcp or an API version.
 For other instances, use the operator's exact HTTP endpoint URL; the library supports custom hosts
@@ -76,6 +77,7 @@ Read each service contract before comparing manifest values, and never assume ha
 
 API_GUIDE = """# Complete GetBible integration guide
 
+Project and API documentation: https://getBible.net. MCP usage guide: https://getBible.net/mcp.
 Official Streamable HTTP endpoint: https://mcp.getbible.net/. Configure that exact URL in your MCP
 client. One connection covers all supported API versions; no /mcp suffix or version path is needed.
 Other instances use their operator-supplied URLs. Read getbible://docs/usage-policy for public limits

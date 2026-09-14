@@ -1,5 +1,8 @@
 # Connecting MCP clients
 
+The project and API documentation website is [getBible.net](https://getBible.net).
+The public MCP usage guide is [getBible.net/mcp](https://getBible.net/mcp).
+
 ## Official GetBible endpoint
 
 Connect to **[https://mcp.getbible.net/](https://mcp.getbible.net/)** using **Streamable HTTP**.
@@ -133,7 +136,7 @@ From a clone with this project's development dependencies installed:
 
 ```bash
 .venv/bin/python scripts/check_endpoint.py
-.venv/bin/python scripts/check_endpoint.py --expect-version 2.1.0 --upstreams
+.venv/bin/python scripts/check_endpoint.py --expect-version 2.1.1 --upstreams
 ```
 
 The first check connects with the official MCP SDK, validates discovery and tool schemas, reads

@@ -1,13 +1,13 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "getbible",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Read and search Bible translations, dictionaries, commentaries and public study topics.",
   "author": {
     "name": "GetBible",
-    "url": "https://getbible.life"
+    "url": "https://getBible.net"
   },
-  "homepage": "https://getbible.life",
+  "homepage": "https://getBible.net",
   "repository": "https://github.com/getbible/mcp",
   "license": "GPL-2.0-or-later",
   "keywords": [
@@ -29,7 +29,7 @@
         "capabilities": [
           "Read"
         ],
-        "websiteURL": "https://getbible.life",
+        "websiteURL": "https://getBible.net",
         "privacyPolicyURL": "https://github.com/getbible/mcp/blob/main/docs/PRIVACY.md",
         "termsOfServiceURL": "https://github.com/getbible/mcp/blob/main/docs/TERMS.md",
         "defaultPrompt": [

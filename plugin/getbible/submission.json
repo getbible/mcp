@@ -2,14 +2,15 @@
   "format": "getbible-plugin-submission-handoff",
   "format_version": 1,
   "status": "requires-operator-completion",
-  "target_runtime_version": "2.1.0",
-  "plugin_package_version": "1.0.0",
+  "target_runtime_version": "2.1.1",
+  "plugin_package_version": "1.0.1",
   "purpose": "GetBible-owned handoff data for completing the OpenAI submission portal. This is not an official portal upload schema or a record of approval.",
   "listing": {
     "name": "GetBible",
     "short_description": "Read and study the Bible with scripture search, dictionaries, commentaries and public topics.",
     "long_description": "GetBible brings read-only Bible study tools into your conversation. Retrieve passages, compare available translations and API versions, search scripture, inspect original-language annotations where supplied, and consult published dictionaries, commentaries and public bookmark topics. The tools preserve returned verse data and identify the sources used. Study guidance connects these resources through references and identifiers actually present in the data, keeps quotations separate from interpretation, and reports missing coverage. One connection covers Bible, reference-query and search APIs v2/v3, plus dictionaries, commentaries and bookmarks v1. Public access is free without an account, subject to traffic limits. Content remains subject to its publisher's rights.",
-    "website_url": "https://getbible.life/",
+    "website_url": "https://getBible.net",
+    "documentation_url": "https://getBible.net/mcp",
     "support_url": "https://git.vdm.dev/getBible/support",
     "privacy_policy_url": "https://github.com/getbible/mcp/blob/main/docs/PRIVACY.md",
     "terms_url": "https://github.com/getbible/mcp/blob/main/docs/TERMS.md",
@@ -61,7 +62,7 @@
     },
     {
       "field": "runtime_readiness",
-      "action": "Have the API operator confirm MCP 2.1.0 is deployed. Run scripts/check_endpoint.py with --expect-version 2.1.0, then with --upstreams to test representative calls across all nine API contracts. Confirm discovery exposes 13 tools including search_dictionary_entries."
+      "action": "Have the API operator confirm MCP 2.1.1 is deployed. Run scripts/check_endpoint.py with --expect-version 2.1.1, then with --upstreams to test representative calls across all nine API contracts. Confirm discovery exposes 13 tools including search_dictionary_entries."
     },
     {
       "field": "test_evidence",

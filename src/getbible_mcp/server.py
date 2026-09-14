@@ -137,7 +137,7 @@ def create_runtime(
         description="Read and search Bible translations, dictionaries, commentaries and public topics.",
         version=__version__,
         instructions=SERVER_INSTRUCTIONS,
-        website_url="https://getbible.life",
+        website_url="https://getBible.net",
         icons=[
             Icon(
                 src="data:image/png;base64,"
@@ -502,7 +502,7 @@ def create_runtime(
                 "name": "GetBible MCP",
                 "version": __version__,
                 "streamable_http": f"{resolved_settings.public_base}{streamable_http_path}",
-                "documentation": f"{resolved_settings.public_base}/",
+                "documentation": "https://getBible.net/mcp",
                 "stdio": "getbible-mcp --transport stdio",
                 "apis": registry.catalog(),
             }
