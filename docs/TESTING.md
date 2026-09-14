@@ -30,8 +30,8 @@ The suite validates:
 - dictionary, commentary and bookmark operations, including introductions and text/hash responses;
 - strict scope validation;
 - MCP tool discovery and expected schemas;
-- Streamable HTTP initialization at exact `/mcp`;
-- stdio subprocess initialization and tool discovery;
+- Streamable HTTP discovery and tool/resource parity at exact `/mcp` and `/` paths;
+- stdio subprocess connection and tool discovery;
 - root/static manifest and OpenAPI JSON syntax;
 - public access, usage-policy, and PyPI package metadata;
 - CLI defaults and version output;
@@ -53,11 +53,11 @@ Before publishing a package release:
 2. Run `.venv/bin/python scripts/verify_release.py vX.Y.Z` for the intended tag.
 3. Build the wheel and source distribution, and verify both contain the complete contract snapshots.
 4. Verify library factories import without allocating a default client and expose both transports.
-5. Use protocol tests or MCP Inspector to check initialization, tools, resources and prompts.
+5. Use protocol tests or MCP Inspector to check discovery, tools, resources and prompts.
 6. Confirm scripture consistency checks, native query/search data and source freshness in both API
    versions, including non-cacheable runtime results.
 7. Confirm dictionary, commentary and bookmark coverage through the generic operation tools.
 
 Every successful test run stores downloadable distributions for 30 days. Manual TestPyPI and
-GitHub Release production publishing both perform the complete validation again; see
+merge-to-main production publishing both perform the complete validation again; see
 [PUBLISHING.md](PUBLISHING.md).
