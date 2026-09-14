@@ -44,15 +44,15 @@ def _csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
 class Settings:
     """Explicit, operator-configured upstreams for every supported API contract.
 
-    The original API/query environment variables retain their V2 meaning. Tool callers cannot
+    Every upstream version has an explicit configuration key. Tool callers cannot
     supply upstream URLs; deployments may configure their own trusted GetBible mirrors here.
     """
 
-    api_base: str = "https://api.getbible.net/v2"
-    query_base: str = "https://query.getbible.net/v2"
+    api_v2_base: str = "https://api.getbible.net/v2"
+    query_v2_base: str = "https://query.getbible.net/v2"
     api_v3_base: str = "https://api.getbible.net/v3"
     query_v3_base: str = "https://query.getbible.net/v3"
-    search_base: str = "https://search.getbible.net/v2"
+    search_v2_base: str = "https://search.getbible.net/v2"
     search_v3_base: str = "https://search.getbible.net/v3"
     dictionaries_base: str = "https://dictionaries.getbible.net/v1"
     commentaries_base: str = "https://commentaries.getbible.net/v1"
@@ -113,11 +113,11 @@ class Settings:
 
     def service_base(self, service: str, version: str) -> str:
         names = {
-            ("api", "v2"): "api_base",
+            ("api", "v2"): "api_v2_base",
             ("api", "v3"): "api_v3_base",
-            ("query", "v2"): "query_base",
+            ("query", "v2"): "query_v2_base",
             ("query", "v3"): "query_v3_base",
-            ("search", "v2"): "search_base",
+            ("search", "v2"): "search_v2_base",
             ("search", "v3"): "search_v3_base",
             ("dictionaries", "v1"): "dictionaries_base",
             ("commentaries", "v1"): "commentaries_base",
@@ -132,11 +132,11 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         return cls(
-            api_base=os.getenv("GETBIBLE_API_BASE", cls.api_base).rstrip("/"),
-            query_base=os.getenv("GETBIBLE_QUERY_BASE", cls.query_base).rstrip("/"),
+            api_v2_base=os.getenv("GETBIBLE_API_V2_BASE", cls.api_v2_base).rstrip("/"),
+            query_v2_base=os.getenv("GETBIBLE_QUERY_V2_BASE", cls.query_v2_base).rstrip("/"),
             api_v3_base=os.getenv("GETBIBLE_API_V3_BASE", cls.api_v3_base).rstrip("/"),
             query_v3_base=os.getenv("GETBIBLE_QUERY_V3_BASE", cls.query_v3_base).rstrip("/"),
-            search_base=os.getenv("GETBIBLE_SEARCH_BASE", cls.search_base).rstrip("/"),
+            search_v2_base=os.getenv("GETBIBLE_SEARCH_V2_BASE", cls.search_v2_base).rstrip("/"),
             search_v3_base=os.getenv("GETBIBLE_SEARCH_V3_BASE", cls.search_v3_base).rstrip("/"),
             dictionaries_base=os.getenv("GETBIBLE_DICTIONARIES_BASE", cls.dictionaries_base).rstrip(
                 "/"

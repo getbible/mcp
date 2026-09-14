@@ -7,10 +7,12 @@ from importlib.resources import files
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 from jsonschema import Draft202012Validator
-from mcp import ClientSession
+from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
+from mcp_types.version import LATEST_PROTOCOL_VERSION
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -44,7 +46,6 @@ API_VERSIONS = {
 }
 DOC_URIS = {
     "getbible://docs/api",
-    "getbible://docs/api-v2",
     "getbible://docs/cache-policy",
     "getbible://docs/usage-policy",
 }
@@ -62,43 +63,45 @@ def reject_network(request: httpx.Request) -> httpx.Response:
 @asynccontextmanager
 async def http_session(
     handler: Callable[[httpx.Request], httpx.Response] = reject_network,
-) -> AsyncIterator[tuple[ClientSession, httpx.AsyncClient]]:
+) -> AsyncIterator[tuple[Client, httpx2.AsyncClient]]:
     settings = Settings()
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as upstream:
         client = GetBibleClient(settings=settings, http_client=upstream)
         runtime = create_runtime(settings=settings, api_client=client)
         async with runtime.app.router.lifespan_context(runtime.app):
-            transport = httpx.ASGITransport(app=runtime.app)
+            transport = httpx2.ASGITransport(app=runtime.app)
             async with (
-                httpx.AsyncClient(transport=transport, base_url="http://testserver") as http,
-                streamable_http_client(
-                    "http://testserver/v2",
-                    http_client=http,
-                    terminate_on_close=False,
-                ) as (read_stream, write_stream, _),
-                ClientSession(read_stream, write_stream) as session,
+                httpx2.AsyncClient(transport=transport, base_url="http://testserver") as http,
+                Client(
+                    streamable_http_client(
+                        "http://testserver/mcp",
+                        http_client=http,
+                        terminate_on_close=False,
+                    ),
+                    cache=None,
+                ) as session,
             ):
-                await session.initialize()
+                assert session.protocol_version == LATEST_PROTOCOL_VERSION
                 yield session, http
 
 
 def structured_result(result: Any) -> dict[str, Any]:
-    assert not result.isError, result.content
-    assert isinstance(result.structuredContent, dict)
-    return result.structuredContent
+    assert not result.is_error, result.content
+    assert isinstance(result.structured_content, dict)
+    return result.structured_content
 
 
 @pytest.mark.asyncio
 async def test_streamable_http_exposes_versioned_tools_and_readable_contracts() -> None:
     async with http_session() as (session, http):
         health = await http.get("/healthz")
-        trailing = await http.get("/v2/")
+        trailing = await http.get("/mcp/")
         tools = await session.list_tools()
         resources = await session.list_resources()
         prompts = await session.list_prompts()
 
         assert health.status_code == 200
-        assert health.json()["mcp_endpoint"] == "/v2"
+        assert health.json()["mcp_endpoint"] == "/mcp"
         assert trailing.status_code == 404
         assert {tool.name for tool in tools.tools} == TOOL_NAMES
         assert {str(resource.uri) for resource in resources.resources} == DOC_URIS | CONTRACT_URIS
@@ -106,19 +109,19 @@ async def test_streamable_http_exposes_versioned_tools_and_readable_contracts() 
 
         for tool in tools.tools:
             assert tool.annotations is not None
-            assert tool.annotations.readOnlyHint is True
-            assert tool.annotations.destructiveHint is False
-            assert tool.annotations.idempotentHint is True
-            assert tool.annotations.openWorldHint is True
-            Draft202012Validator.check_schema(tool.inputSchema)
-            if tool.outputSchema is not None:
-                Draft202012Validator.check_schema(tool.outputSchema)
+            assert tool.annotations.read_only_hint is True
+            assert tool.annotations.destructive_hint is False
+            assert tool.annotations.idempotent_hint is True
+            assert tool.annotations.open_world_hint is True
+            Draft202012Validator.check_schema(tool.input_schema)
+            if tool.output_schema is not None:
+                Draft202012Validator.check_schema(tool.output_schema)
 
         for uri in sorted(CONTRACT_URIS):
             resource = await session.read_resource(uri)
             assert len(resource.contents) == 1
             content = resource.contents[0]
-            assert content.mimeType == "application/json"
+            assert content.mime_type == "application/json"
             document = json.loads(content.text)
             assert document["openapi"].startswith("3.")
             assert document["paths"]
@@ -135,7 +138,7 @@ async def test_streamable_http_exposes_versioned_tools_and_readable_contracts() 
 
         for uri in sorted(DOC_URIS):
             resource = await session.read_resource(uri)
-            assert resource.contents[0].mimeType == "text/markdown"
+            assert resource.contents[0].mime_type == "text/markdown"
             assert resource.contents[0].text.strip()
 
 
@@ -352,7 +355,12 @@ async def test_generic_search_supports_read_only_post_and_parameter_precedence()
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("status, code", [(404, "invalid_reference"), (429, "rate_limited")])
-async def test_upstream_problem_is_reported_as_mcp_tool_error(status: int, code: str) -> None:
+@pytest.mark.parametrize("tool_name", ["call_api_operation", "query_verses", "search_verses"])
+async def test_upstream_problem_is_reported_as_mcp_tool_error(
+    status: int,
+    code: str,
+    tool_name: str,
+) -> None:
     problem = {
         "type": "about:blank",
         "title": "Request failed",
@@ -369,18 +377,28 @@ async def test_upstream_problem_is_reported_as_mcp_tool_error(status: int, code:
             headers={"content-type": "application/problem+json", "retry-after": "7"},
         )
 
-    async with http_session(handler) as (session, _):
-        result = await session.call_tool(
-            "call_api_operation",
-            {
-                "service": "query",
-                "api_version": "v3",
-                "operation_id": "getScripture",
-                "parameters": {"translation": "kjv", "reference": "John3:999"},
-            },
-        )
+    arguments: dict[str, Any]
+    if tool_name == "call_api_operation":
+        arguments = {
+            "service": "query",
+            "api_version": "v3",
+            "operation_id": "getScripture",
+            "parameters": {"translation": "kjv", "reference": "John3:999"},
+        }
+    elif tool_name == "query_verses":
+        arguments = {"references": "John3:999", "api_version": "v3"}
+    else:
+        arguments = {"search": "faith", "api_version": "v3"}
 
-    assert result.isError is True
+    async with http_session(handler) as (session, _):
+        result = await session.call_tool(tool_name, arguments)
+
+    assert result.is_error is True
+    assert result.structured_content is not None
+    native = result.structured_content["result"]
+    assert native["data"] == problem
+    assert native["source"]["status_code"] == status
+    assert native["source"]["headers"]["retry-after"] == "7"
     text = "\n".join(block.text for block in result.content if block.type == "text")
     assert str(status) in text
     assert code in text
@@ -401,8 +419,8 @@ async def test_invalid_tool_inputs_fail_before_upstream_request() -> None:
             {"translation": "kjv", "references": "", "api_version": "v3"},
         )
 
-    assert invalid_version.isError is True
-    assert missing_reference.isError is True
+    assert invalid_version.is_error is True
+    assert missing_reference.is_error is True
 
 
 class TrackingClient(GetBibleClient):
@@ -443,18 +461,20 @@ async def test_http_client_lives_until_application_shutdown(
     )
     async with runtime.app.router.lifespan_context(runtime.app):
         async with (
-            httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=runtime.app),
+            httpx2.AsyncClient(
+                transport=httpx2.ASGITransport(app=runtime.app),
                 base_url="http://testserver",
             ) as http,
-            streamable_http_client(
-                "http://testserver/bridge",
-                http_client=http,
-                terminate_on_close=False,
-            ) as (read_stream, write_stream, _),
-            ClientSession(read_stream, write_stream) as session,
+            Client(
+                streamable_http_client(
+                    "http://testserver/bridge",
+                    http_client=http,
+                    terminate_on_close=False,
+                ),
+                cache=None,
+            ) as session,
         ):
-            await session.initialize()
+            assert session.protocol_version == LATEST_PROTOCOL_VERSION
             assert client.close_calls == 0
             assert not upstream.is_closed
             health = await http.get("/healthz")
@@ -500,18 +520,20 @@ async def test_package_factory_embeds_at_mcp_with_parent_lifespan(
     )
     async with (
         parent.router.lifespan_context(parent),
-        httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=parent),
+        httpx2.AsyncClient(
+            transport=httpx2.ASGITransport(app=parent),
             base_url="http://testserver",
         ) as http,
-        streamable_http_client(
-            "http://testserver/mcp",
-            http_client=http,
-            terminate_on_close=False,
-        ) as (read_stream, write_stream, _),
-        ClientSession(read_stream, write_stream) as session,
+        Client(
+            streamable_http_client(
+                "http://testserver/mcp",
+                http_client=http,
+                terminate_on_close=False,
+            ),
+            cache=None,
+        ) as session,
     ):
-        await session.initialize()
+        assert session.protocol_version == LATEST_PROTOCOL_VERSION
         tools = await session.list_tools()
         assert {tool.name for tool in tools.tools} == TOOL_NAMES
         catalog = structured_result(await session.call_tool("discover_apis", {}))

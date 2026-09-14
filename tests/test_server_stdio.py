@@ -5,23 +5,20 @@ import os
 import sys
 
 import pytest
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp import Client, StdioServerParameters
+from mcp_types.version import LATEST_PROTOCOL_VERSION
 
 
 @pytest.mark.asyncio
-async def test_stdio_subprocess_initializes_and_lists_same_tools() -> None:
+async def test_stdio_subprocess_discovers_latest_protocol_and_all_tools() -> None:
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "getbible_mcp", "--transport", "stdio"],
         env={**os.environ, "PYTHONUNBUFFERED": "1"},
     )
 
-    async with (
-        stdio_client(params) as (read_stream, write_stream),
-        ClientSession(read_stream, write_stream) as session,
-    ):
-        await session.initialize()
+    async with Client(params, cache=None) as session:
+        assert session.protocol_version == LATEST_PROTOCOL_VERSION
         tools = await session.list_tools()
         resources = await session.list_resources()
         catalog = await session.call_tool("discover_apis", {})
@@ -51,10 +48,9 @@ async def test_stdio_subprocess_initializes_and_lists_same_tools() -> None:
         "query_verses",
         "search_verses",
     }
-    assert all(tool.annotations and tool.annotations.readOnlyHint for tool in tools.tools)
+    assert all(tool.annotations and tool.annotations.read_only_hint for tool in tools.tools)
     assert {str(resource.uri) for resource in resources.resources} == {
         "getbible://docs/api",
-        "getbible://docs/api-v2",
         "getbible://docs/cache-policy",
         "getbible://docs/usage-policy",
         "getbible://openapi/api/v2",
@@ -67,10 +63,10 @@ async def test_stdio_subprocess_initializes_and_lists_same_tools() -> None:
         "getbible://openapi/commentaries/v1",
         "getbible://openapi/bookmarks/v1",
     }
-    assert not catalog.isError
-    assert catalog.structuredContent is not None
+    assert not catalog.is_error
+    assert catalog.structured_content is not None
     assert {
-        (entry["service"], entry["version"]) for entry in catalog.structuredContent["apis"]
+        (entry["service"], entry["version"]) for entry in catalog.structured_content["apis"]
     } == {
         ("api", "v2"),
         ("api", "v3"),
@@ -82,12 +78,12 @@ async def test_stdio_subprocess_initializes_and_lists_same_tools() -> None:
         ("commentaries", "v1"),
         ("bookmarks", "v1"),
     }
-    assert not description.isError
-    assert description.structuredContent is not None
-    assert description.structuredContent["method"] == "POST"
-    assert description.structuredContent["path"] == "/v3/{translation}/{search}"
+    assert not description.is_error
+    assert description.structured_content is not None
+    assert description.structured_content["method"] == "POST"
+    assert description.structured_content["path"] == "/v3/{translation}/{search}"
     query = json.loads(contract.contents[0].text)
     assert query["paths"]["/v3/{translation}/{reference}"]["get"]["operationId"] == "getScripture"
-    assert guide.contents[0].mimeType == "text/markdown"
+    assert guide.contents[0].mime_type == "text/markdown"
     assert guide.contents[0].text.strip()
     assert {prompt.name for prompt in prompts.prompts} == {"design_getbible_integration"}

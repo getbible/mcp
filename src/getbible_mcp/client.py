@@ -11,7 +11,7 @@ from typing import Any, NoReturn, cast
 
 import httpx
 
-from getbible_mcp.cache import RUNTIME_CACHE_POLICY, STATIC_CACHE_POLICY, cache_advice
+from getbible_mcp.cache import STATIC_CACHE_POLICY, cache_advice
 from getbible_mcp.config import Settings
 from getbible_mcp.contracts import ContractError, ContractRegistry
 from getbible_mcp.models import (
@@ -351,7 +351,7 @@ class GetBibleClient:
             parameters["chapter"] = scope.chapter
         return parameters
 
-    async def list_translations(self, api_version: str = "v2") -> MappingResult:
+    async def list_translations(self, api_version: str = "v3") -> MappingResult:
         version = _bible_version(api_version)
         operation = "listTranslations" if version == "v2" else "getTranslations"
         result = await self.call_api_operation("api", version, operation)
@@ -359,7 +359,7 @@ class GetBibleClient:
             data=result.data, source=result.source, hash_guidance=CACHE_POLICY, cache=result.cache
         )
 
-    async def list_books(self, translation: str, api_version: str = "v2") -> MappingResult:
+    async def list_books(self, translation: str, api_version: str = "v3") -> MappingResult:
         version = _bible_version(api_version)
         operation = "listBooks" if version == "v2" else "getBooks"
         result = await self.call_api_operation(
@@ -370,7 +370,7 @@ class GetBibleClient:
         )
 
     async def list_chapters(
-        self, translation: str, book: int, api_version: str = "v2"
+        self, translation: str, book: int, api_version: str = "v3"
     ) -> MappingResult:
         version = _bible_version(api_version)
         operation = "listChapters" if version == "v2" else "getChapters"
@@ -425,7 +425,7 @@ class GetBibleClient:
         )
 
     async def query_verses(
-        self, translation: str, references: str, api_version: str = "v2"
+        self, translation: str, references: str, api_version: str = "v3"
     ) -> QueryResult:
         version = _bible_version(api_version)
         translation = _translation(translation)
@@ -440,7 +440,6 @@ class GetBibleClient:
             references=references,
             data=result.data,
             source=result.source,
-            cache_policy=RUNTIME_CACHE_POLICY,
             cache=result.cache,
         )
 
@@ -449,7 +448,7 @@ class GetBibleClient:
         kind: ManifestKind,
         translation: str | None = None,
         book: int | None = None,
-        api_version: str = "v2",
+        api_version: str = "v3",
     ) -> ManifestResult:
         version = _bible_version(api_version)
         parameters: dict[str, Any] = {}

@@ -8,7 +8,7 @@ from collections.abc import Sequence
 
 import uvicorn
 
-from getbible_mcp import __version__
+from getbible_mcp import __version__, create_runtime
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,14 +28,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
+    runtime = create_runtime()
 
     if args.transport == "stdio":
-        from getbible_mcp.server import mcp
-
-        mcp.run(transport="stdio")
+        runtime.mcp.run(transport="stdio")
         return
-
-    from getbible_mcp.server import runtime
 
     uvicorn.run(
         runtime.app,
@@ -49,4 +46,3 @@ def main(argv: Sequence[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

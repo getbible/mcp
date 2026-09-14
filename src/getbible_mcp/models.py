@@ -21,7 +21,7 @@ class StrictModel(BaseModel):
 class ScopeSpec(StrictModel):
     kind: ScopeKind
     translation: str = Field(min_length=1, max_length=64)
-    api_version: BibleVersion = "v2"
+    api_version: BibleVersion = "v3"
     book: int | None = Field(default=None, ge=1, le=281474977710655)
     chapter: int | None = Field(default=None, ge=1)
 
@@ -50,8 +50,8 @@ class HashWatch(ScopeSpec):
 class SourceInfo(StrictModel):
     url: str
     fetched_at: datetime
-    api_version: ApiVersion = "v2"
-    service: ServiceName = "api"
+    api_version: ApiVersion
+    service: ServiceName
     status_code: int = Field(default=200, ge=100, le=599)
     headers: dict[str, str] = Field(default_factory=dict)
 
@@ -107,26 +107,12 @@ class ScriptureResult(StrictModel):
     cache: CacheAdvice | None = None
 
 
-class ChapterHash(StrictModel):
-    translation: str
-    book: int = Field(ge=1, le=281474977710655)
-    chapter: int = Field(ge=1)
-    hash: str
-    source_url: str
-
-
 class QueryResult(StrictModel):
     translation: str
     references: str
     data: Any
     source: SourceInfo
-    chapter_hashes: list[ChapterHash] = Field(default_factory=list)
-    unresolved_references: list[str] = Field(default_factory=list)
-    cacheable: bool = False
-    consistency_checked: bool = False
-    consistency_retries: int = 0
-    cache_policy: str
-    cache: CacheAdvice | None = None
+    cache: CacheAdvice
 
 
 class ManifestResult(StrictModel):

@@ -23,8 +23,8 @@ def create_runtime(
 ) -> ServerRuntime:
     """Build a runtime exposing the same tools over HTTP or stdio.
 
-    The embedding host must run the returned app's ASGI lifespan. Standalone legacy
-    imports in getbible_mcp.server retain /v2; this public library factory uses /mcp.
+    The embedding host must run the returned app's ASGI lifespan. The canonical
+    HTTP endpoint is /mcp; API versions are selected by each tool call.
     """
     from getbible_mcp.server import create_runtime as build_runtime
 

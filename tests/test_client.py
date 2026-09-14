@@ -25,11 +25,11 @@ def make_client(
     handler: Callable[[httpx.Request], httpx.Response], **settings: Any
 ) -> GetBibleClient:
     configured: dict[str, Any] = {
-        "api_base": "https://api.test/v2",
+        "api_v2_base": "https://api.test/v2",
         "api_v3_base": "https://api.test/v3",
-        "query_base": "https://query.test/v2",
+        "query_v2_base": "https://query.test/v2",
         "query_v3_base": "https://query.test/v3",
-        "search_base": "https://search.test/v2",
+        "search_v2_base": "https://search.test/v2",
         "search_v3_base": "https://search.test/v3",
         "dictionaries_base": "https://dictionaries.test/v1",
         "commentaries_base": "https://commentaries.test/v1",
@@ -133,12 +133,8 @@ async def test_query_uses_only_runtime_and_preserves_native_results(version: str
     assert calls[0].url.host == "query.test"
     assert calls[0].url.path.startswith(f"/{version}/kjv/")
     assert result.data == native
-    assert result.chapter_hashes == []
-    assert result.unresolved_references == []
-    assert result.cacheable is False
-    assert result.consistency_checked is False
-    assert result.consistency_retries == 0
-    assert result.cache is not None and result.cache.recommended is False
+    assert result.model_dump().keys() == {"translation", "references", "data", "source", "cache"}
+    assert result.cache.recommended is False
     assert result.cache.remaining_ttl_seconds <= 120
 
 
@@ -388,10 +384,10 @@ async def test_total_request_timeout_bounds_slow_upstreams() -> None:
         await client.list_translations()
 
 
-def test_settings_retain_v2_environment_names_and_add_versioned_bases(
+def test_settings_resolve_explicit_versioned_environment_bases(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GETBIBLE_API_BASE", "https://old.test/mirror/v2/")
+    monkeypatch.setenv("GETBIBLE_API_V2_BASE", "https://old.test/mirror/v2/")
     monkeypatch.setenv("GETBIBLE_API_V3_BASE", "https://new.test/v3/")
     settings = Settings.from_env()
     assert settings.service_base("api", "v2") == "https://old.test/mirror/v2"
@@ -409,4 +405,4 @@ def test_settings_retain_v2_environment_names_and_add_versioned_bases(
 )
 def test_settings_reject_ambiguous_upstream_bases(base: str) -> None:
     with pytest.raises(ValueError):
-        Settings(api_base=base)
+        Settings(api_v2_base=base)
