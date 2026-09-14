@@ -1,0 +1,106 @@
+name: sync-openapi
+
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-openapi
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Refresh contracts for review
+    if: github.repository == 'getbible/mcp'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      BOT_BRANCH: automation/sync-openapi
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install validation dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements-dev.txt
+          .venv/bin/python -m pip install --no-deps -e .
+      - name: Download and validate all contracts before writing
+        id: refresh
+        run: |
+          .venv/bin/python scripts/refresh_contracts.py --write
+          if git diff --quiet -- src/getbible_mcp/openapi site/contracts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Bump the coordinated patch version
+        if: steps.refresh.outputs.changed == 'true'
+        id: version
+        run: |
+          version="$(.venv/bin/python scripts/bump_version.py)"
+          .venv/bin/python scripts/verify_release.py "v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Validate the complete package offline
+        if: steps.refresh.outputs.changed == 'true'
+        run: bash scripts/check
+      - name: Create or update the reviewed contract PR
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -Eeuo pipefail
+          gh auth setup-git
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          previous="$(git ls-remote --heads origin "refs/heads/$BOT_BRANCH" | awk '{print $1}')"
+          git switch -C "$BOT_BRANCH"
+          git add src/getbible_mcp/openapi site/contracts pyproject.toml \
+            src/getbible_mcp/__init__.py server.json site/manifest.json site/v2/manifest.json
+          changed=true
+          if [[ -n "$previous" ]]; then
+            git fetch origin "$BOT_BRANCH"
+            if [[ "$(git write-tree)" == "$(git rev-parse 'FETCH_HEAD^{tree}')" ]]; then
+              changed=false
+            fi
+          fi
+          if [[ "$changed" == true ]]; then
+            git commit -m "Refresh upstream OpenAPI contracts for $PACKAGE_VERSION"
+            git push --force-with-lease="refs/heads/$BOT_BRANCH:$previous" origin "HEAD:refs/heads/$BOT_BRANCH"
+          fi
+          pr="$(gh pr list --base main --head "$BOT_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          body="$RUNNER_TEMP/openapi-pr.md"
+          cat > "$body" <<'BODY'
+          Refresh the nine published GetBible OpenAPI contracts and their packaged/static snapshots.
+          The generic adapter discovers added operations and schema changes from these contracts;
+          curated convenience tools are unchanged.
+
+          All documents passed OpenAPI and read-only adapter validation before any snapshot changed.
+          The coordinated patch version, full offline tests, lint, type checks and package build passed.
+          Review the upstream contract changes before merging. This PR is never auto-merged.
+          BODY
+          printf '\nPackage version: `%s`.\n\nValidation: %s/%s/actions/runs/%s\n' \
+            "$PACKAGE_VERSION" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> "$body"
+          if [[ -z "$pr" ]]; then
+            gh pr create --base main --head "$BOT_BRANCH" \
+              --title "Refresh OpenAPI contracts for $PACKAGE_VERSION" --body-file "$body"
+            changed=true
+          elif [[ "$changed" == true ]]; then
+            gh pr edit "$pr" --title "Refresh OpenAPI contracts for $PACKAGE_VERSION" --body-file "$body"
+          fi
+          # Also retry a failed dispatch when an earlier run already created this exact PR head.
+          gh workflow run test.yml --ref "$BOT_BRANCH"

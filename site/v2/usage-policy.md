@@ -1,31 +1,34 @@
-# GetBible API V2 public use policy
+# GetBible public use policy
 
-## Open access
+## Access
 
-GetBible API V2 is public and open worldwide. It requires no registration, account, API key,
-authentication, subscription, payment, or request quota. Applications may call the Main API and
-Query API directly. The static API is built for heavy public use and already serves millions of
-requests per day.
+The public GetBible scripture, query, search, dictionary, commentary and bookmark endpoints are
+read-only and require no account or API key. The supplied MCP service adds no authentication,
+subscription or per-address request quota. Applications must still handle HTTP errors, unavailable
+upstreams and the published input/response limits. Read-only search POST submits a lookup, not a
+content change.
 
-## Translation copyright information
+## Content rights and provenance
 
-Each translation's native return data contains the copyright information applicable to that
-translation. The catalog at `https://api.getbible.net/v2/translations.json` provides this metadata
-for translation discovery. Preserve and honor the returned information when displaying or
-redistributing scripture.
+Read the translation catalog for copyright and rich metadata applicable to each translation. V2 and
+v3 have separate catalogs. Chapter, query and search results carry compact metadata; absence of
+repeated copyright fields does not remove the translation's terms.
 
-GetBible does not add a separate copyright layer to the scripture. The GNU GPL version 2-or-later
-license of the GetBible MCP repository applies only to the MCP software and does not relicense
-scripture text or override publisher terms.
+Dictionary and commentary catalogs and module metadata carry their own licenses, provenance and
+distribution notes. Preserve them alongside displayed or redistributed content. Bookmarks are a
+separate topic/reference dataset and contain no scripture text. Respect that dataset's published
+license as well as the chosen translation's terms when resolving its references.
 
-## Required synchronization agreement
+GetBible does not add a separate copyright layer to scripture. The GNU GPL version 2-or-later
+license of this repository applies to the MCP software and does not relicense translations, study
+modules or other upstream datasets.
 
-Correct use of the API requires cached scripture to remain synchronized through GetBible hashes.
-Every persisted payload must be stored with the hash for its exact translation, book, or chapter
-scope. Revalidate at least weekly. If a hash changes, invalidate that scope and its cached
-descendants, fetch the current scripture and hash, and replace the stale record atomically.
+## Synchronization
 
-An integration that does not perform this validation cycle is not complying with the GetBible API
-usage agreement because it can continue distributing corrected or outdated scripture text.
+The 30-day rotation contract is a condition of cached use. Never retain upstream content beyond
+30 days without refreshing, and obey shorter HTTP freshness and `no-store`. Retain the exact
+scope/path checksum where published, invalidate changed content and descendants as applicable, and
+replace refreshed records atomically. Query/search are not cached by the MCP; their source HTTP
+freshness remains relevant to any separate downstream caching implementation.
 
-See [cache-policy.md](cache-policy.md) for the complete cache procedure.
+See [cache-policy.md](cache-policy.md) for the complete procedure.

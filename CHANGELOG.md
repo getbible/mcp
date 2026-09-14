@@ -1,18 +1,23 @@
 # Changelog
 
+## 2.0.0 — 2026-09-14
+
+- Cover all nine upstream OpenAPI contracts: scripture/query/search v2 and v3, and dictionaries,
+  commentaries and public bookmarks v1.
+- Use the stable official Python MCP SDK 2.2.0 and the 2026-07-28 protocol specification.
+- Expose the `/mcp` protocol endpoint through import-safe library factories and retain stdio parity.
+- Default scripture convenience tools to upstream v3; support upstream v2 through explicit selection.
+- Add API discovery, operation inspection and contract-validated execution, including search GET
+  and read-only POST, text indexes, schemas, catalogs and checksum routes.
+- Preserve native v3 tokens, spans, paragraph markers and source data throughout retrieval.
+- Apply a 30-day caching ceiling and source HTTP freshness; keep query/search uncached.
+- Distinguish scripture SHA-1 from study/topic SHA-256 manifests and search source metadata.
+- Publish complete OpenAPI resources and nine static snapshots, with a reviewed refresh workflow.
+- Keep the PyPI library, client guidance and package publishing in this repository; consuming
+  applications own infrastructure setup and lifecycle.
+
 ## 1.0.0 — 2026-07-15
 
-- Added one GetBible API V2 MCP contract over stdio and Streamable HTTP.
-- Added eight read-only tools, three documentation resources, and one integration-design prompt.
-- Added hash-consistent scripture retrieval and mandatory weekly cache-revalidation guidance.
-- Documented unrestricted public API access, translation-specific copyright metadata, and the hash
-  synchronization agreement without imposing an additional scripture license.
-- Added Nginx static discovery/documentation and exact `/v2` MCP routing.
-- Added GPL-2.0-or-later software licensing and canonical `github.com/getbible/mcp` metadata.
-- Added release-gated, tokenless PyPI Trusted Publishing for the `getbible-mcp` package.
-- Added 30-day downloadable wheel/source artifacts on every successful CI run and manual,
-  tokenless TestPyPI publishing for pre-release installation tests.
-- Added manual production publishing with release-tag validation and the protected
-  `PYPI_MCP_TOKEN` Actions secret.
-- Added hardened systemd deployment, atomic release manager, rollback, health checks, and Docker.
-- Added unit, schema, stdio, Streamable HTTP, static-document, and packaging tests.
+- Introduced scripture v2 tools, documentation resources and an integration-design prompt.
+- Added read-only MCP access, scripture consistency checks and translation-rights guidance.
+- Established PyPI publishing, Registry metadata and package/protocol validation.

@@ -2,27 +2,36 @@
 
 ## Choose a transport
 
-Use the public remote service when the MCP host supports Streamable HTTP and outbound HTTPS. It is
-the simplest option because the user installs nothing.
+Use Streamable HTTP when an application provides a remote MCP service and your client supports
+outbound HTTPS. Use stdio when the client launches a local server process. Both expose the same
+GetBible tools, resources and prompts across all nine upstream API contracts.
 
-Use stdio when the client expects a local server process, when the environment does not accept remote
-MCP URLs, or when the operator wants the MCP process under local control.
+The protocol endpoint is `/mcp`. The application providing that endpoint determines its public base
+URL; this package does not assume a particular host. Scripture tools default to upstream v3, with v2
+available explicitly through `api_version`.
 
-Both choices call the same public GetBible APIs and expose the same MCP contract.
+## Python, JavaScript and PHP
+
+| Use case | Integration |
+|---|---|
+| AI host with remote MCP support | Configure the application's published `/mcp` URL as a Streamable HTTP server. |
+| Python, JavaScript or PHP application acting as an MCP client | Use a supported client library to initialize that endpoint, discover tools and call them. |
+| AI host requiring a local executable | Install the Python package and launch `getbible-mcp --transport stdio`. |
+| Ordinary application needing scripture or study data | Call the published REST APIs using the desired upstream OpenAPI contract. |
+
+This repository publishes one Python MCP package. It does not publish npm or Composer packages.
+MCP clients perform JSON-RPC initialization and capability negotiation before calling tools. `/mcp`
+is not a REST endpoint accepting arbitrary scripture paths or HTTP query parameters.
 
 ## Streamable HTTP
 
-Configure the MCP client with this exact URL:
+Use the full MCP URL supplied by the application. The exact protocol path is `/mcp`, without a
+trailing slash. Client libraries handle initialization, protocol headers and `tools/list`; a normal
+web-browser GET is not a sufficient protocol test.
 
-```text
-https://mcp.getbible.net/v2
-```
-
-Do not append a trailing slash. `/v2/` is documentation, not the MCP protocol endpoint.
-
-The MCP client performs initialization, capability negotiation, and `tools/list` automatically. A
-normal web-browser GET is not a valid protocol test because MCP requests require the expected MCP
-headers and JSON-RPC messages.
+Read the advertised tool schemas after initialization. Start with `discover_apis`, inspect a chosen
+service/version through `describe_api_operation`, and execute its operation with
+`call_api_operation`. Use the convenience scripture/search tools for common tasks.
 
 ## stdio from a repository clone
 
@@ -36,76 +45,34 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --no-deps .
 ```
 
-Generic MCP configuration:
+Configure the MCP host to launch the installed `getbible-mcp` executable with arguments
+`["--transport", "stdio"]`. Use its absolute path: the host may have a restricted `PATH` and a
+different working directory.
 
-```json
-{
-  "mcpServers": {
-    "getbible": {
-      "command": "/absolute/path/getbible-mcp/.venv/bin/getbible-mcp",
-      "args": ["--transport", "stdio"]
-    }
-  }
-}
-```
+The server writes MCP messages to stdout. Application logs and diagnostics go to stderr because
+writing them to stdout would corrupt the protocol stream.
 
-Always use an absolute command path. The MCP host may start with a restricted `PATH` and a different
-working directory.
+## PyPI installation
 
-The server writes MCP messages to stdout. Application logs and diagnostic output must never be sent
-to stdout in stdio mode because they would corrupt the protocol stream.
-
-## pipx installation from PyPI
-
-For a machine-wide per-user command without manually managing a venv:
+For an isolated per-user command:
 
 ```bash
 pipx install getbible-mcp
+command -v getbible-mcp
 ```
 
-The client command is then the absolute path reported by `command -v getbible-mcp`.
-
-## Docker stdio
-
-Build once:
-
-```bash
-docker build -t getbible-mcp:1.0.0 .
-```
-
-Generic client configuration:
-
-```json
-{
-  "mcpServers": {
-    "getbible": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "getbible-mcp:1.0.0",
-        "getbible-mcp", "--transport", "stdio"
-      ]
-    }
-  }
-}
-```
-
-The `-i` flag is mandatory because it keeps standard input attached.
+Use the returned executable path in the MCP host's command configuration.
 
 ## MCP Inspector
 
-After installing the project's development dependencies, inspect stdio with:
+Inspect a local installation with:
 
 ```bash
 npx @modelcontextprotocol/inspector \
   .venv/bin/getbible-mcp --transport stdio
 ```
 
-For the remote service, open MCP Inspector and select Streamable HTTP with:
-
-```text
-https://mcp.getbible.net/v2
-```
-
-Use Inspector to initialize, list tools, inspect generated JSON Schemas, read both resources, retrieve
-the prompt, and call representative tools.
+For a remote application, select Streamable HTTP and enter its published `/mcp` URL. Initialize,
+list tools, inspect schemas, read documentation and OpenAPI resources, retrieve the prompt and make
+representative calls. The [examples](../site/v2/examples.md) cover v3 scripture, grouped references,
+search GET/POST, dictionaries, commentaries and bookmarks.

@@ -2,43 +2,40 @@
 
 ## Decision
 
-Use Python with the official Model Context Protocol Python SDK.
+Maintain one Python MCP server using the stable official Model Context Protocol Python SDK 2.2.0,
+implementing the 2026-07-28 protocol specification. Publish its
+Python package for local stdio use and expose the same implementation as an embeddable ASGI library.
+JavaScript and PHP integrations use compatible MCP clients or call the existing REST APIs.
+This repository does not publish separate npm or Composer packages.
 
 ## Why
 
-The MCP project currently classifies Python, TypeScript, C#, and Go SDKs as Tier 1. All official SDKs
-support tools, resources, prompts, local transports, and remote transports. TypeScript therefore has
-no industry-support advantage for this service.
+The workload is asynchronous HTTP, JSON and schema validation. Python fits the package's existing
+implementation. Sharing one server object gives stdio and HTTP the
+same schemas, validation, tools, resources and behavior, without maintaining three language-specific
+implementations of the API and cache contracts.
 
-Python is the most suitable operational fit because:
+MCP is a protocol rather than a requirement to install a server package in each caller's language.
+A client library must implement initialization and capability negotiation before calling tools;
+a generic REST request to the MCP endpoint is insufficient. For an application that only needs
+scripture data, the underlying REST endpoints remain a valid direct integration.
 
-- GetBible already deploys on Ubuntu behind Nginx.
-- the workload is HTTP, JSON, validation, and I/O rather than CPU-intensive processing;
-- virtual environments give clean dependency isolation from Ubuntu's system Python;
-- systemd and Uvicorn provide a small, familiar production service;
-- the same package can be launched directly over stdio by local MCP clients.
+## Version boundaries
 
-Go would also be technically sound, but it would add implementation and maintenance cost without a
-meaningful operational benefit for this particular proxy-and-validation workload.
+| Version | Meaning |
+|---|---|
+| Python MCP SDK 2.2.0 | The stable official protocol library pinned in the dependency files |
+| `getbible-mcp` 2.0.0 | This server's package release |
+| `/mcp` path | The MCP protocol endpoint, independent of upstream versions |
+| Tool `api_version` | The upstream contract: v3 by default or explicit v2 for scripture conveniences; v1 for study/bookmarks |
 
-## SDK release selection
-
-The repository pins `mcp==1.28.1`, the current stable production line when this release was built.
-The Python SDK's 2.x line is prerelease software and its own maintainers state that it should not yet
-be used in production.
-
-The Python SDK version and GetBible API version are unrelated:
-
-- `mcp==1.28.1` identifies the Python protocol library release.
-- `/v2` identifies the GetBible API and MCP contract exposed by this repository.
-
-When the Python SDK publishes a stable 2.x release, evaluate it on a separate branch. Do not change
-the dependency pin until stdio, Streamable HTTP, tool-schema, resource, prompt, cache-integrity, and
-deployment tests all pass.
+Dependency pins and API snapshots are independently reviewed release inputs. Evaluate SDK upgrades
+on a branch and require stdio, Streamable HTTP, schema, resource, prompt, consistency and packaging
+checks before changing the pin. Do not tie an upstream API version change to an SDK major version.
 
 Official references:
 
-- https://modelcontextprotocol.io/docs/sdk
-- https://github.com/modelcontextprotocol/python-sdk
-- https://py.sdk.modelcontextprotocol.io/
-
+- [MCP SDKs](https://modelcontextprotocol.io/docs/sdk)
+- [Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [Stable Python SDK 2.2.0 release](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.2.0)
+- [Python SDK documentation](https://py.sdk.modelcontextprotocol.io/)

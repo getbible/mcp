@@ -1,0 +1,270 @@
+{
+  "info": {
+    "contact": {"name":"getBible","url":"https://getbible.net"},
+    "description": "Scripture references in, verses out. The reference is the last path segment; multiple references are separated by semicolons. Missing or unresolved references and explicitly supplied unknown translations return RFC 9457 HTTP 404 errors; requests never fall back to another verse. The endpoint takes no query parameters. Documentation, OpenAPI, liveness and readiness are public without a token. Conditional GET and HEAD are supported; API data uses the domain's selected access policy.",
+    "title": "getBible query endpoint",
+    "version": "v2"
+  },
+  "openapi": "3.1.0",
+  "servers": [{"url":"https://query.getbible.net"}],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "health",
+        "responses": {"200":{"content":{"application/json":{"example":{"status":"ok"},"schema":{"$ref":"#/components/schemas/Health"}}},"description":"Service is online"}},
+        "security": [],
+        "summary": "Liveness"
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readiness",
+        "responses": {
+          "200": {"content":{"application/json":{"example":{"status":"ready"},"schema":{"$ref":"#/components/schemas/Health"}}},"description":"Scripture is readable"},
+          "503": {"$ref":"#/components/responses/Problem"}
+        },
+        "security": [],
+        "description": "Reads the configured readiness reference Mat7:7 in the default translation. This reference is only a health probe, never a fallback for scripture requests.",
+        "summary": "Readiness: read the configured probe reference"
+      }
+    },
+    "/{reference}": {
+      "get": {
+        "operationId": "redirectReference",
+        "parameters": [{"in":"path","name":"reference","required":true,"schema":{"type":"string"}}],
+        "responses": {
+          "301": {"description":"A valid reference redirects to /v2/kjv/{reference}. Missing or unresolved references return 404."},
+          "400": {"$ref":"#/components/responses/Problem"},
+          "401": {"$ref":"#/components/responses/Problem"},
+          "404": {"$ref":"#/components/responses/Problem"},
+          "405": {"$ref":"#/components/responses/Problem"},
+          "413": {"$ref":"#/components/responses/Problem"},
+          "429": {"$ref":"#/components/responses/Problem"},
+          "500": {"$ref":"#/components/responses/Problem"},
+          "502": {"$ref":"#/components/responses/Problem"},
+          "503": {"$ref":"#/components/responses/Problem"},
+          "504": {"$ref":"#/components/responses/Problem"}
+        },
+        "summary": "Short form: reference in the default translation"
+      }
+    },
+    "/{translation}/{reference}": {
+      "get": {
+        "operationId": "redirectUnversioned",
+        "parameters": [
+          {"in":"path","name":"translation","required":true,"schema":{"type":"string"}},
+          {"in":"path","name":"reference","required":true,"schema":{"type":"string"}}
+        ],
+        "responses": {
+          "301": {
+            "description": "A valid reference in a known translation redirects to /v2/{translation}/{reference}. Unknown translations and missing or unresolved references return 404.",
+            "headers": {"Location":{"schema":{"type":"string"}}}
+          },
+          "400": {"$ref":"#/components/responses/Problem"},
+          "401": {"$ref":"#/components/responses/Problem"},
+          "404": {"$ref":"#/components/responses/Problem"},
+          "405": {"$ref":"#/components/responses/Problem"},
+          "413": {"$ref":"#/components/responses/Problem"},
+          "429": {"$ref":"#/components/responses/Problem"},
+          "500": {"$ref":"#/components/responses/Problem"},
+          "502": {"$ref":"#/components/responses/Problem"},
+          "503": {"$ref":"#/components/responses/Problem"},
+          "504": {"$ref":"#/components/responses/Problem"}
+        },
+        "summary": "Short form without a version segment"
+      }
+    },
+    "/v2": {
+      "get": {
+        "operationId": "missingReference",
+        "responses": {
+          "400": {"$ref":"#/components/responses/Problem"},
+          "401": {"$ref":"#/components/responses/Problem"},
+          "404": {"$ref":"#/components/responses/Problem"},
+          "405": {"$ref":"#/components/responses/Problem"},
+          "413": {"$ref":"#/components/responses/Problem"},
+          "429": {"$ref":"#/components/responses/Problem"},
+          "500": {"$ref":"#/components/responses/Problem"},
+          "502": {"$ref":"#/components/responses/Problem"},
+          "503": {"$ref":"#/components/responses/Problem"},
+          "504": {"$ref":"#/components/responses/Problem"}
+        },
+        "description": "This API request supplies no scripture reference and returns a 404 missing_reference problem document. The public documentation page is at /v2/.",
+        "summary": "A scripture reference is required"
+      }
+    },
+    "/v2/openapi.json": {
+      "get": {
+        "operationId": "openapi",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {"info":{"type":"object"},"openapi":{"type":"string"},"paths":{"type":"object"}},
+                  "required": ["openapi","info","paths"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Generated OpenAPI 3.1 JSON document."
+          }
+        },
+        "security": [],
+        "summary": "Public API contract"
+      }
+    },
+    "/v2/{translation}": {
+      "get": {
+        "operationId": "redirectTranslation",
+        "parameters": [{"in":"path","name":"translation","required":true,"schema":{"type":"string"}}],
+        "responses": {
+          "301": {"description":"Only when this segment is a valid scripture reference: redirect to /v2/kjv/{reference}. A translation without a reference returns 404 missing_reference; an unresolved reference returns a 404 problem document."},
+          "400": {"$ref":"#/components/responses/Problem"},
+          "401": {"$ref":"#/components/responses/Problem"},
+          "404": {"$ref":"#/components/responses/Problem"},
+          "405": {"$ref":"#/components/responses/Problem"},
+          "413": {"$ref":"#/components/responses/Problem"},
+          "429": {"$ref":"#/components/responses/Problem"},
+          "500": {"$ref":"#/components/responses/Problem"},
+          "502": {"$ref":"#/components/responses/Problem"},
+          "503": {"$ref":"#/components/responses/Problem"},
+          "504": {"$ref":"#/components/responses/Problem"}
+        },
+        "summary": "Resolve a reference in the default translation; a translation alone returns 404"
+      }
+    },
+    "/v2/{translation}/{reference}": {
+      "get": {
+        "operationId": "getScripture",
+        "description": "Every reference must resolve in the requested translation. A missing or unresolved reference returns a 404 problem document, including a mixed list containing an unresolved reference. Unknown translations also return 404. No default verse is substituted.",
+        "parameters": [
+          {"description":"Translation abbreviation, e.g. kjv","in":"path","name":"translation","required":true,"schema":{"type":"string"}},
+          {
+            "description": "One or more scripture references separated by ';', e.g. John3:16 or Genesis 1:1-3;Psalm 23",
+            "in": "path",
+            "name": "reference",
+            "required": true,
+            "schema": {"maxLength":512,"type":"string"}
+          }
+        ],
+        "responses": {
+          "200": {"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Scripture"}}},"description":"Chapter-keyed scripture object"},
+          "304": {"description":"Not modified (conditional request)"},
+          "400": {"$ref":"#/components/responses/Problem"},
+          "401": {"$ref":"#/components/responses/Problem"},
+          "404": {"$ref":"#/components/responses/Problem"},
+          "405": {"$ref":"#/components/responses/Problem"},
+          "413": {"$ref":"#/components/responses/Problem"},
+          "429": {"$ref":"#/components/responses/Problem"},
+          "500": {"$ref":"#/components/responses/Problem"},
+          "502": {"$ref":"#/components/responses/Problem"},
+          "503": {"$ref":"#/components/responses/Problem"},
+          "504": {"$ref":"#/components/responses/Problem"}
+        },
+        "summary": "Verses for one or more references"
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "Problem": {
+        "content": {"application/problem+json":{"schema":{"$ref":"#/components/schemas/Problem"}}},
+        "description": "RFC 9457 error. Existing access policies apply to API data requests.",
+        "headers": {"Retry-After":{"description":"Seconds before retrying, when supplied for a temporary error.","schema":{"minimum":0,"type":"integer"}}}
+      }
+    },
+    "schemas": {
+      "Health": {"properties":{"status":{"enum":["ok","ready"],"type":"string"}},"required":["status"],"type":"object"},
+      "Problem": {
+        "description": "RFC 9457 problem document.",
+        "properties": {
+          "code": {"type":"string"},
+          "detail": {"type":"string"},
+          "instance": {"type":"string"},
+          "retry_after": {"minimum":0,"type":"integer"},
+          "status": {"type":"integer"},
+          "title": {"type":"string"},
+          "type": {"format":"uri","type":"string"}
+        },
+        "required": ["type","title","status","code","detail","instance"],
+        "type": "object"
+      },
+      "Scripture": {
+        "additionalProperties": {
+          "properties": {
+            "abbreviation": {"type":"string"},
+            "book_name": {"type":"string"},
+            "book_nr": {"type":"integer"},
+            "chapter": {"type":"integer"},
+            "direction": {"type":"string"},
+            "encoding": {"type":"string"},
+            "lang": {"type":"string"},
+            "language": {"type":"string"},
+            "name": {"type":"string"},
+            "ref": {"items":{"type":"string"},"type":"array"},
+            "translation": {"type":"string"},
+            "verses": {"items":{"$ref":"#/components/schemas/Verse"},"type":"array"}
+          },
+          "required": ["book_nr","chapter","verses"],
+          "type": "object"
+        },
+        "description": "One entry per chapter, keyed {translation}_{book}_{chapter}, with compact API translation metadata and selected verses. Verse source fields are retained; static chapter editorial is excluded.",
+        "type": "object"
+      },
+      "Verse": {
+        "additionalProperties": true,
+        "description": "A source verse from the selected v2 data. Core fields are shared by v2 and v3. Optional v3 paragraph, tokens and spans are retained when present, as are other source fields and nested values.",
+        "properties": {
+          "chapter": {"type":"integer"},
+          "name": {"type":"string"},
+          "paragraph": {"description":"V3: true when this verse begins a paragraph; omitted when absent from the source.","type":"boolean"},
+          "spans": {"description":"V3 annotations over token and word ranges, when supplied by the source.","items":{"$ref":"#/components/schemas/VerseSpan"},"type":"array"},
+          "text": {"type":"string"},
+          "tokens": {"description":"V3 word tokens in reading order, when supplied by the source.","items":{"$ref":"#/components/schemas/VerseToken"},"type":"array"},
+          "verse": {"type":"integer"}
+        },
+        "required": ["verse","name","text"],
+        "type": "object"
+      },
+      "VerseSpan": {
+        "additionalProperties": true,
+        "description": "V3 source annotation. Token positions index the verse tokens array from zero, inclusive. Word positions count display words from one, inclusive; zero means unlocated.",
+        "properties": {
+          "attrs": {"additionalProperties":{"type":"string"},"type":"object"},
+          "span": {"type":"string"},
+          "tag": {"type":"string"},
+          "token_end": {"minimum":0,"type":"integer"},
+          "token_start": {"minimum":0,"type":"integer"},
+          "word_end": {"minimum":0,"type":"integer"},
+          "word_start": {"minimum":0,"type":"integer"}
+        },
+        "required": ["tag","span","token_start","token_end","word_start","word_end"],
+        "type": "object"
+      },
+      "VerseToken": {
+        "additionalProperties": true,
+        "description": "V3 word token. Word positions count whitespace-separated display words from one, inclusive; zero means unlocated. Additional source attributes are retained.",
+        "properties": {
+          "gloss": {"type":"string"},
+          "lemma": {"additionalProperties":{"items":{"type":"string"},"type":"array"},"description":"Lexical identifiers grouped by scheme, such as strong.","type":"object"},
+          "morph": {"additionalProperties":{"items":{"type":"string"},"type":"array"},"description":"Morphology codes grouped by scheme.","type":"object"},
+          "morphSegmented": {"type":"boolean"},
+          "n": {"type":"string"},
+          "src": {"items":{"type":["integer","string"]},"type":"array"},
+          "subType": {"type":"string"},
+          "token": {"type":"string"},
+          "type": {"type":"string"},
+          "variant": {"type":"boolean"},
+          "variantType": {"type":"string"},
+          "word_end": {"minimum":0,"type":"integer"},
+          "word_start": {"minimum":0,"type":"integer"},
+          "xlit": {"additionalProperties":{"items":{"type":"string"},"type":"array"},"description":"Transliterations grouped by scheme.","type":"object"}
+        },
+        "required": ["token","word_start","word_end"],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {"bearer":{"description":"Required for API data only on token-only domains. Valid tokens retain unrestricted rate access.","scheme":"bearer","type":"http"}}
+  }
+}

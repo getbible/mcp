@@ -5,6 +5,11 @@ on:
   pull_request:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        description: Immutable source revision to validate and package
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
@@ -37,27 +43,14 @@ jobs:
       - name: Test both MCP transports
         run: .venv/bin/python -m pytest
 
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: docker/setup-buildx-action@v4
-      - name: Build production image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: false
-          tags: getbible-mcp:test
-
   package:
     name: Build downloadable distributions
-    needs: [python, docker]
+    needs: [python]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
@@ -66,13 +59,21 @@ jobs:
       - name: Install build frontend
         run: python -m pip install -r requirements-dev.txt
       - name: Build wheel and source distribution
-        run: python -m build
+        run: |
+          export SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)"
+          python -m build
+          python -m build --outdir "$RUNNER_TEMP/rebuilt-dist"
+          for artifact in dist/*; do
+            cmp "$artifact" "$RUNNER_TEMP/rebuilt-dist/$(basename "$artifact")"
+          done
       - name: Smoke-test the built wheel
         run: |
           python -m venv .artifact-test
           .artifact-test/bin/python -m pip install -r requirements.txt
           .artifact-test/bin/python -m pip install --no-deps dist/getbible_mcp-*.whl
           .artifact-test/bin/getbible-mcp --version
+          cd /tmp
+          "$GITHUB_WORKSPACE/.artifact-test/bin/python" -c 'from getbible_mcp.contracts import ContractRegistry; assert len(ContractRegistry().catalog()) == 9'
       - name: Upload downloadable distributions
         uses: actions/upload-artifact@v7
         with:

@@ -1,39 +1,57 @@
-# Mandatory GetBible cache-integrity policy
+# GetBible cache policy
 
-GetBible scripture builds follow CrossWire modules. A correction upstream can change a translation,
-book, or chapter in a later build. Applications may cache scripture for performance, but every cache
-entry must retain its exact scope hash and the time that hash was last checked.
+The MCP keeps no upstream result cache and recommends using query and search data directly.
+A downstream application choosing to cache an eligible response must remain within GetBible's 30-day
+rotation contract and obey any shorter upstream HTTP freshness.
 
-This synchronization cycle is a condition of the GetBible API usage agreement, not an optional
-performance recommendation.
+## Freshness and the 30-day ceiling
 
-## Required rules
+- Never retain a response beyond 30 days (2,592,000 seconds) without refreshing it against the source.
+  An unchanged content hash does not extend an old response indefinitely.
+- Use the remaining lifetime in `Cache-Control`, accounting for `Age` and response dates. Respect
+  `Expires` when applicable. Do not reset a response's remaining lifetime to 30 days when receiving it
+  from an intermediary.
+- `no-store` prohibits persistence. `no-cache` requires revalidation before reuse. Missing usable
+  freshness is not permission to invent a long-lived cache.
+- A shorter TTL wins. Do not use `stale-while-revalidate` or an error fallback to cross the hard
+  30-day ceiling. If refresh fails after expiry, report unavailable data rather than claiming it is
+  current.
+- Include service, API version, operation and every effective request input in the cache key. Never
+  share entries across v2/v3, translations, reference groups, search filters or pagination offsets.
 
-1. Store scripture with the hash for the exact translation, book, or chapter payload cached.
-2. Revalidate the hash at least weekly, even if the application's ordinary cache TTL is longer.
-3. A changed translation hash invalidates the translation and every cached book and chapter below it.
-4. A changed book hash invalidates the book and every cached chapter below it.
-5. A changed chapter hash invalidates that chapter.
-6. Fetch replacement JSON and hash into temporary storage and atomically replace the active record.
-7. If hash validation fails, do not advance `checked_at` or claim that cached text is current.
+## Scripture checksums
 
-Recommended record:
+Static scripture v2/v3 publish SHA-1 `.sha` values for translations, books, chapters and indexes.
+Store the hash for the exact scope with its content. `get_scripture` reads the scope hash before and
+after the JSON fetch and retries once if publication changes mid-read.
 
-```json
-{
-  "api_version": "v2",
-  "translation": "kjv",
-  "scope": "chapter",
-  "book": 66,
-  "chapter": 1,
-  "payload": {},
-  "hash": "40-character-upstream-value",
-  "checked_at": "2026-07-15T10:00:00Z"
-}
-```
+When a translation hash changes, invalidate its cached translation, books and chapters. A changed
+book hash invalidates that book and its chapters; a changed chapter hash invalidates that chapter.
+Fetch replacement data and the matching current hash into temporary storage, then atomically swap
+the record. Retain the source response time and expiration; do not mark an unsuccessful check as
+successful. Bulk checksum manifests support scheduled validation before entries expire.
 
-For grouped Query API results, store every participating chapter hash. If any chapter hash changes,
-evict or rebuild the grouped result.
+Hash checking is a synchronization mechanism. It is not a cryptographic proof of publisher identity
+and does not replace HTTP freshness or the retention ceiling.
 
-Treat hashes as opaque equality tokens. They indicate a content-version change; they are not proof
-of publisher identity and are not a cryptographic trust mechanism.
+## Dictionary, commentary and bookmark checksums
+
+Dictionary and commentary `hashes.json` files contain SHA-256 values keyed by document path.
+Bookmarks use `checksums.json`, also with SHA-256. These are separate contracts from scripture
+SHA-1 `.sha` files. Preserve their declared algorithm and exact path identity. Compare the matching
+file digest when replacing or reusing a cached document, while applying the same retention ceiling
+and source freshness.
+
+## Query and search
+
+Query responses have no published chapter-hash envelope. Search responses can contain `query.sha`
+and `query.cache`; these describe the source translation and engine state, not the hash or TTL of
+the returned result. Do not manufacture a checksum from those fields.
+
+Live query/search GET responses convey the remaining source lifetime through HTTP `Cache-Control`,
+with an ETag for conditional requests. TTL is not promised in JSON. Search POST responses use
+`no-store`. The MCP preserves source HTTP metadata and sets `recommended: false` for runtime caching;
+`cacheable` separately reports whether HTTP permits reuse. An integration that explicitly caches
+eligible GET results must honor that metadata,
+conditional revalidation rules and the 30-day maximum. A 304 is useful only with the corresponding
+stored representation; never interpret an empty response as fresh scripture.

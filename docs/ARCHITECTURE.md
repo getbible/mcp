@@ -1,84 +1,86 @@
-# Architecture
+# Package architecture
 
-## Components
+## One library, two transports
 
-### Nginx
+The Python package defines MCP tools, documentation resources, complete OpenAPI resources and the
+integration-design prompt once. Local stdio and Streamable HTTP use the same server object. The
+package is distributed through PyPI; consuming applications own their infrastructure and lifecycle.
 
-Nginx is the public boundary. It handles:
+Python, JavaScript and PHP clients can connect to an existing remote MCP service without running
+language-specific copies of the server. MCP is a JSON-RPC protocol, not a replacement REST API.
+Ordinary applications can still use GetBible's HTTP APIs directly.
 
-- TLS certificates and HTTPS
-- the root discovery page
-- all static files below `/v2/`
-- exact routing of `/v2` to the MCP application
-- a small MCP request-body safety limit, without API keys, quotas, or per-address throttling
-- long response/SSE-compatible proxy settings
+The protocol endpoint is `/mcp`, independent of upstream API versions. Tool `api_version` chooses
+scripture/query/search v2 or v3, or study/bookmark v1. Scripture conveniences default to v3.
 
-The trailing slash is meaningful:
+## Public library interface
 
-- `/v2` is the MCP Streamable HTTP protocol endpoint.
-- `/v2/` is the static human-readable documentation page.
+- `getbible_mcp.create_app(settings=None, api_client=None, *, path="/mcp")` returns an ASGI application.
+- `getbible_mcp.create_runtime(..., streamable_http_path="/mcp")` returns the application, MCP server,
+  HTTP client and resolved settings together.
+- `Settings` configures trusted upstreams and request limits; an injected `GetBibleClient` supports
+  controlled test transports and application composition.
 
-The MCP specification assigns both POST and GET semantics to the same Streamable HTTP endpoint, so
-Nginx must not serve an HTML page or redirect GET requests at exact `/v2`.
+Importing the public package does not create a default HTTP client or server. Each factory call owns
+an independent runtime. The caller must run the ASGI lifespan; a parent mounting the child must
+explicitly enter `child.router.lifespan_context(child)`. Lifespan startup initializes MCP resources
+and shutdown closes the client's connection pool. Mounting an application without entering its
+lifespan is insufficient.
 
-### Python MCP process
+Consuming applications own process management, proxy configuration and public hosting.
 
-The official stable Python MCP SDK supplies JSON-RPC parsing, initialization, capability negotiation,
-tools, resources, prompts, schemas, stdio, and Streamable HTTP.
+## API contract layer
 
-The service runs as a stateless ASGI application. Two Uvicorn workers are used by default. The work
-is I/O-bound: each tool validates arguments, constructs an allowlisted GetBible path, and retrieves
-static JSON or SHA content. No database or persistent server state is required.
+The package includes the complete nine upstream OpenAPI documents under `src/getbible_mcp/openapi/`.
+The contract layer merges path-item and operation parameters, retains original parameter locations,
+and validates arguments with their advertised JSON Schemas before constructing a request.
 
-### GetBible APIs
+`discover_apis` identifies services, versions and source URLs. `describe_api_operation` exposes exact
+operation schemas and response contracts. `call_api_operation` executes the declared operation.
+Convenience tools cover common scripture, reference and search tasks through the same client.
+Search POST is a read-only query operation; the server has no upstream write capability.
 
-The MCP process reads only these fixed bases:
+Callers choose a known service, version and operation, never an arbitrary URL. Path values are encoded
+as segments, parameter types and allowed keys are validated, array serialization follows OpenAPI,
+and only declared operations are eligible for a request. Path/query name collisions are exposed as
+separate inputs: the plain name selects the path value and `query.<name>` selects the query value.
 
-```text
-https://api.getbible.net/v2
-https://query.getbible.net/v2
-```
+Upstream defaults are the six public GetBible hosts and their supported version roots. A consuming
+application can configure trusted mirrors; MCP callers cannot override hosts. Outbound requests have
+timeouts and response-size limits. Redirect operations return their status and `Location` metadata
+without following the redirect.
 
-Callers never supply an arbitrary URL. Translation identifiers are restricted to safe abbreviation
-characters, book/chapter values are bounded integers, redirects are rejected, responses are limited
-in size to protect the MCP process, and requests have timeouts. These local safeguards are not
-GetBible API usage quotas: the upstream API is public and has no authentication or request limits.
+## Payload and error behavior
 
-## Transport parity
+Native JSON remains intact inside the MCP result, preserving v3 verse tokens, spans, paragraphs,
+source metadata and future additional fields. Text indexes and checksums retain text form. Source
+metadata records the upstream location, HTTP status and freshness information. Upstream problem
+responses remain errors instead of being replaced with fallback scripture.
 
-The Python server object defines all MCP capabilities once. The stdio CLI and Streamable HTTP ASGI
-application are different transports around that same object. There is no duplicate tool
-implementation and therefore no intentional behavior difference.
+Query returns selected chapter-keyed verse data without inferred chapter hashes. Search preserves
+the `{query, results, matches}` envelope. Reference search and full-text search have different optional
+metadata, so clients must not require full-text fields for every result.
 
-## Hash-consistent scripture retrieval
+## Consistency and freshness
 
-For a complete translation, book, or chapter:
+For `get_scripture`, the client reads the scope SHA-1, fetches JSON, and reads the SHA-1 again. If the
+hash changes, it retries once; a second mismatch returns an error. This protects against crossing a
+static scripture publication boundary.
 
-```text
-read scope SHA
-      │
-      v
-read scope JSON
-      │
-      v
-read scope SHA again
-      │
-      ├─ unchanged ─> return JSON + SHA
-      └─ changed   ─> retry once; otherwise return a tool error
-```
+The library does not cache upstream response data. Query/search results carry `recommended: false`
+cache advice; `cacheable` separately reports HTTP eligibility. HTTP freshness is retained for
+consumers: 30 days is the hard ceiling, with shorter
+`Cache-Control`, `Age`, dates and `Expires` reducing the usable lifetime. `no-store` prohibits
+persistence and `no-cache` requires revalidation. Published SHA-1/SHA-256 values do not override
+freshness, and search source-translation metadata is not a response checksum.
 
-For Query API results, the server resolves each reference through the translation's book mapping,
-uses KJV names as the documented fallback, retrieves participating chapter hashes concurrently with
-a limit, verifies that the hash set remains unchanged across the Query API read, and marks the result
-non-cacheable if any reference remains unresolved.
+See [cache policy](../site/v2/cache-policy.md) for downstream synchronization.
 
-## Scaling
+## Contract maintenance
 
-The remote process is stateless and read-only. Normal scaling options are:
-
-1. Increase Uvicorn workers on the existing host.
-2. Run several service instances on different local ports and use an Nginx upstream group.
-3. Run the container on several nodes behind a load balancer.
-
-Because source API files are static and the server retains no MCP session state, no shared database
-or session store is required by this implementation.
+OpenAPI snapshots are reviewed package-release inputs. Refresh the packaged and static copies
+together using `scripts/refresh_contracts.py --write`, or check upstream drift with `--check`.
+Preserve exact source documents and test validation, serialization, transport parity and packaging
+before release. Generic tools expose the declared operations without maintaining a separate
+hand-written wrapper for every endpoint. All static snapshots are under `site/contracts/`;
+`site/v2/` contains MCP package 2.0 documentation for all supported upstream versions.

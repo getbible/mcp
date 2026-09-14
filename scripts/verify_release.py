@@ -20,23 +20,30 @@ def normalized_tag(tag: str) -> str:
     return value[1:] if value.startswith("v") else value
 
 
-def declared_versions() -> dict[str, str]:
+def declared_versions(root: Path = ROOT) -> dict[str, str]:
     """Read all public version declarations without importing the package."""
 
-    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
-    manifest = json.loads((ROOT / "site/v2/manifest.json").read_text(encoding="utf-8"))
-    init_text = (ROOT / "src/getbible_mcp/__init__.py").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    server = json.loads((root / "server.json").read_text(encoding="utf-8"))
+    manifest = json.loads((root / "site/v2/manifest.json").read_text(encoding="utf-8"))
+    index = json.loads((root / "site/manifest.json").read_text(encoding="utf-8"))
+    init_text = (root / "src/getbible_mcp/__init__.py").read_text(encoding="utf-8")
     package_match = re.search(r'^__version__\s*=\s*"([^"]+)"$', init_text, re.MULTILINE)
     if package_match is None:
         raise ValueError("src/getbible_mcp/__init__.py has no __version__ declaration")
 
-    return {
+    versions = {
         "pyproject.toml": str(pyproject["project"]["version"]),
         "server.json": str(server["version"]),
         "site/v2/manifest.json": str(manifest["mcp_server_version"]),
+        "site/manifest.json": str(index["package_version"]),
         "src/getbible_mcp/__init__.py": package_match.group(1),
     }
+    if not isinstance(server.get("packages"), list) or not server["packages"]:
+        raise ValueError("server.json must declare an installable package")
+    for number, package in enumerate(server["packages"]):
+        versions[f"server.json packages[{number}]"] = str(package["version"])
+    return versions
 
 
 def main() -> int:

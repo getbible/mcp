@@ -1,16 +1,22 @@
 {
   "name": "GetBible MCP",
-  "description": "Read-only Model Context Protocol access to GetBible API V2.",
+  "package_version": "2.0.0",
+  "description": "Read-only Model Context Protocol access to scripture, query and search v2/v3, plus dictionaries, commentaries and bookmarks v1.",
   "website": "https://getbible.life",
-  "documentation": "https://mcp.getbible.net/v2/",
-  "access": "Public; no account, API key, authentication, or request quota",
-  "versions": {
-    "v2": {
-      "api_version": "v2",
-      "status": "stable",
-      "streamable_http": "https://mcp.getbible.net/v2",
-      "stdio_command": "getbible-mcp --transport stdio",
-      "manifest": "https://mcp.getbible.net/v2/manifest.json"
-    }
-  }
+  "documentation": "v2/",
+  "documentation_note": "The v2 directory documents MCP package 2.0 and every supported upstream API version.",
+  "manifest": "v2/manifest.json",
+  "transports": {
+    "streamable_http": {"path": "/mcp", "requires_consumer_url": true},
+    "stdio": {"command": "getbible-mcp", "args": ["--transport", "stdio"]}
+  },
+  "upstream_versions": {
+    "api": ["v2", "v3"],
+    "query": ["v2", "v3"],
+    "search": ["v2", "v3"],
+    "dictionaries": ["v1"],
+    "commentaries": ["v1"],
+    "bookmarks": ["v1"]
+  },
+  "default_scripture_version": "v3"
 }

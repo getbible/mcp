@@ -10,26 +10,34 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
 
 import httpx
+from openapi_spec_validator import validate
+from openapi_spec_validator.exceptions import OpenAPIError
+from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_CONTRACT_BYTES = 10 * 1024 * 1024
 
 
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("OpenAPI JSON numbers must be finite")
+    return number
+
+
 def snapshot_paths(service: str, version: str) -> list[Path]:
-    """Keep runtime resources, public contracts and the original V2 URL aligned."""
+    """Keep runtime resources and public versioned contracts aligned."""
     filename = f"{service}-{version}.json"
-    paths = [
+    return [
         ROOT / "src/getbible_mcp/openapi" / filename,
         ROOT / "site/contracts" / filename,
     ]
-    if (service, version) == ("api", "v2"):
-        paths.append(ROOT / "site/v2/openapi.json")
-    return paths
 
 
 def download(client: httpx.Client, url: str) -> tuple[bytes, dict[str, Any]]:
@@ -41,7 +49,7 @@ def download(client: httpx.Client, url: str) -> tuple[bytes, dict[str, Any]]:
             content.extend(chunk)
             if len(content) > MAX_CONTRACT_BYTES:
                 raise ValueError(f"Contract exceeds {MAX_CONTRACT_BYTES} bytes: {url}")
-    document = json.loads(content)
+    document = json.loads(content, parse_float=_finite_float, parse_constant=_finite_float)
     if not isinstance(document, dict):
         raise ValueError(f"Contract must be a JSON object: {url}")
     return bytes(content), document
@@ -56,13 +64,22 @@ def main() -> int:
 
     # Prefer this checkout so the script also works before an editable install.
     sys.path.insert(0, str(ROOT / "src"))
-    from getbible_mcp.contracts import CONTRACT_URLS, ContractRegistry
+    from getbible_mcp.contracts import CONTRACT_URLS, ContractRegistry, _check_references
 
     downloaded: dict[tuple[str, str], tuple[bytes, dict[str, Any]]] = {}
     try:
         with httpx.Client(timeout=30.0, follow_redirects=False, trust_env=False) as client:
             for key, url in CONTRACT_URLS.items():
                 downloaded[key] = download(client, url)
+        for key, (_, document) in downloaded.items():
+            # Reject external references before a validator can resolve them.
+            # Full OpenAPI validation also catches unknown path-item verbs and
+            # malformed document structures the request adapter does not use.
+            _check_references(document)
+            try:
+                validate(document)
+            except (OpenAPIValidationError, OpenAPIError) as exc:
+                raise ValueError(f"Invalid OpenAPI document for {key[0]}/{key[1]}: {exc}") from exc
         reviewed = ContractRegistry()
         updated = ContractRegistry({key: document for key, (_, document) in downloaded.items()})
         changed = [
