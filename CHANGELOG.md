@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 — 2026-09-14
+
+- Allow consuming applications to serve Streamable HTTP directly at the domain root.
+- Keep protocol discovery and tool/resource behavior consistent at configurable HTTP paths.
+- Clarify host-selected endpoint paths in generic client and library documentation.
+
 ## 2.0.0 — 2026-09-14
 
 - Cover all nine upstream OpenAPI contracts: scripture/query/search v2 and v3, and dictionaries,

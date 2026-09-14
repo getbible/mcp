@@ -1,8 +1,9 @@
 # GetBible MCP 2.0
 
-Read-only MCP access to all nine GetBible API contracts. The protocol endpoint is /mcp; a consuming
-application supplies its public URL. Local transport: getbible-mcp --transport stdio. Both transports
-have the same tools, resources and prompts. Python MCP SDK 2.2.0 implements protocol 2026-07-28.
+Read-only MCP access to all nine GetBible API contracts. Use the exact protocol endpoint URL supplied
+by the host; its path may be /, /mcp, or another supported path. API versions are tool arguments.
+Local transport: getbible-mcp --transport stdio. Both transports have the same tools, resources and
+prompts. Python MCP SDK 2.2.0 implements protocol 2026-07-28.
 
 ## Start here
 

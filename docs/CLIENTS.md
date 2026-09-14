@@ -6,28 +6,29 @@ Use Streamable HTTP when an application provides a remote MCP service and your c
 outbound HTTPS. Use stdio when the client launches a local server process. Both expose the same
 GetBible tools, resources and prompts across all nine upstream API contracts.
 
-The protocol endpoint is `/mcp`. The application providing that endpoint determines its public base
-URL; this package does not assume a particular host. Scripture tools default to upstream v3, with v2
-available explicitly through `api_version`.
+The hosting application supplies the complete protocol endpoint URL. Its path may be `/`, `/mcp`,
+or another supported exact path; this package does not assume a public host or fixed endpoint path.
+Scripture tools default to upstream v3, with v2 available explicitly through `api_version`.
 
 ## Python, JavaScript and PHP
 
 | Use case | Integration |
 |---|---|
-| AI host with remote MCP support | Configure the application's published `/mcp` URL as a Streamable HTTP server. |
+| AI host with remote MCP support | Configure the application's published MCP endpoint URL as a Streamable HTTP server. |
 | Python, JavaScript or PHP application acting as an MCP client | Use a supported client library to initialize that endpoint, discover tools and call them. |
 | AI host requiring a local executable | Install the Python package and launch `getbible-mcp --transport stdio`. |
 | Ordinary application needing scripture or study data | Call the published REST APIs using the desired upstream OpenAPI contract. |
 
 This repository publishes one Python MCP package. It does not publish npm or Composer packages.
-MCP clients perform JSON-RPC initialization and capability negotiation before calling tools. `/mcp`
-is not a REST endpoint accepting arbitrary scripture paths or HTTP query parameters.
+MCP clients perform JSON-RPC initialization and capability negotiation before calling tools. The
+MCP endpoint does not accept arbitrary scripture paths or HTTP query parameters as a REST API.
 
 ## Streamable HTTP
 
-Use the full MCP URL supplied by the application. The exact protocol path is `/mcp`, without a
-trailing slash. Client libraries handle initialization, protocol headers and `tools/list`; a normal
-web-browser GET is not a sufficient protocol test.
+Use the full MCP URL supplied by the application exactly, including its path. Do not append `/mcp`,
+an API version, or a trailing slash. The library factory defaults to `/mcp`, while hosts may select
+`/` or another supported path. Client libraries handle initialization, protocol headers and
+`tools/list`; a normal web-browser GET is not a sufficient protocol test.
 
 Read the advertised tool schemas after initialization. Start with `discover_apis`, inspect a chosen
 service/version through `describe_api_operation`, and execute its operation with
@@ -72,7 +73,7 @@ npx @modelcontextprotocol/inspector \
   .venv/bin/getbible-mcp --transport stdio
 ```
 
-For a remote application, select Streamable HTTP and enter its published `/mcp` URL. Initialize,
+For a remote application, select Streamable HTTP and enter its published MCP endpoint URL. Initialize,
 list tools, inspect schemas, read documentation and OpenAPI resources, retrieve the prompt and make
 representative calls. The [examples](../site/v2/examples.md) cover v3 scripture, grouped references,
 search GET/POST, dictionaries, commentaries and bookmarks.

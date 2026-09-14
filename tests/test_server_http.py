@@ -63,18 +63,20 @@ def reject_network(request: httpx.Request) -> httpx.Response:
 @asynccontextmanager
 async def http_session(
     handler: Callable[[httpx.Request], httpx.Response] = reject_network,
+    *,
+    path: str = "/mcp",
 ) -> AsyncIterator[tuple[Client, httpx2.AsyncClient]]:
     settings = Settings()
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as upstream:
         client = GetBibleClient(settings=settings, http_client=upstream)
-        runtime = create_runtime(settings=settings, api_client=client)
+        runtime = create_runtime(settings=settings, api_client=client, streamable_http_path=path)
         async with runtime.app.router.lifespan_context(runtime.app):
             transport = httpx2.ASGITransport(app=runtime.app)
             async with (
                 httpx2.AsyncClient(transport=transport, base_url="http://testserver") as http,
                 Client(
                     streamable_http_client(
-                        "http://testserver/mcp",
+                        f"http://testserver{path}",
                         http_client=http,
                         terminate_on_close=False,
                     ),
@@ -92,8 +94,9 @@ def structured_result(result: Any) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_streamable_http_exposes_versioned_tools_and_readable_contracts() -> None:
-    async with http_session() as (session, http):
+@pytest.mark.parametrize("path", ["/mcp", "/"])
+async def test_streamable_http_exposes_versioned_tools_and_readable_contracts(path: str) -> None:
+    async with http_session(path=path) as (session, http):
         health = await http.get("/healthz")
         trailing = await http.get("/mcp/")
         tools = await session.list_tools()
@@ -101,8 +104,10 @@ async def test_streamable_http_exposes_versioned_tools_and_readable_contracts() 
         prompts = await session.list_prompts()
 
         assert health.status_code == 200
-        assert health.json()["mcp_endpoint"] == "/mcp"
+        assert health.json()["mcp_endpoint"] == path
         assert trailing.status_code == 404
+        if path == "/":
+            assert (await http.post("/mcp", json={})).status_code == 404
         assert {tool.name for tool in tools.tools} == TOOL_NAMES
         assert {str(resource.uri) for resource in resources.resources} == DOC_URIS | CONTRACT_URIS
         assert {prompt.name for prompt in prompts.prompts} == {"design_getbible_integration"}

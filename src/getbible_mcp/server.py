@@ -100,10 +100,10 @@ def create_runtime(
     resolved_settings = settings or Settings.from_env()
     if (
         not streamable_http_path.startswith("/")
-        or streamable_http_path in {"/", "/healthz"}
+        or streamable_http_path == "/healthz"
         or any(char in streamable_http_path for char in "?#{}")
         or "//" in streamable_http_path
-        or streamable_http_path.endswith("/")
+        or (streamable_http_path != "/" and streamable_http_path.endswith("/"))
         or any(part in {".", ".."} for part in streamable_http_path.split("/"))
     ):
         raise ValueError("streamable_http_path must be an exact absolute endpoint path")
@@ -451,7 +451,6 @@ def create_runtime(
             }
         )
 
-    @server.custom_route("/", methods=["GET"], name="direct-discovery")
     async def direct_discovery(_: Request) -> JSONResponse:
         return JSONResponse(
             {
@@ -463,6 +462,9 @@ def create_runtime(
                 "apis": registry.catalog(),
             }
         )
+
+    if streamable_http_path != "/":
+        server.custom_route("/", methods=["GET"], name="direct-discovery")(direct_discovery)
 
     app = server.streamable_http_app(
         streamable_http_path=streamable_http_path,

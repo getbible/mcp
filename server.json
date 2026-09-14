@@ -3,12 +3,12 @@
   "name": "net.getbible/mcp",
   "title": "GetBible",
   "description": "Read-only Bible, query, search, dictionary, commentary and bookmark APIs.",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "getbible-mcp",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "transport": {
         "type": "stdio"
       }
