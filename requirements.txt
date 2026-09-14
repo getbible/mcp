@@ -1,6 +1,6 @@
 # Complete production lock tested on CPython 3.11-3.14 / Ubuntu.
 # Rebuild and run the full suite before changing any version.
-PyJWT==2.13.0
+PyJWT==2.14.0
 annotated-types==0.8.0
 anyio==4.15.1
 attrs==26.1.0
