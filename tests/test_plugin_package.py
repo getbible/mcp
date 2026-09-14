@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+import tomllib
 from importlib.resources import files
 from pathlib import Path
 
@@ -21,6 +22,9 @@ def test_plugin_metadata_and_assets_are_self_contained() -> None:
     assert portable["version"] == compatibility["version"]
     interface = portable["extensions"]["com.openai"]["interface"]
     assert interface == compatibility["interface"]
+    metadata = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["urls"]
+    assert interface["websiteURL"] == portable["homepage"] == metadata["Homepage"]
+    assert portable["author"]["url"] == metadata["Homepage"]
     assert interface["capabilities"] == ["Read"]
     assert compatibility["mcpServers"] == "./.mcp.json"
     assert "apps" not in portable["extensions"]["com.openai"]
@@ -50,13 +54,21 @@ def test_connection_and_review_materials_use_the_official_anonymous_endpoint() -
     assert submission["connection"]["server_url"] == "https://mcp.getbible.net/"
     assert submission["connection"]["authentication"] == "none"
     assert submission["connection"]["custom_ui"] is False
+    metadata = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["urls"]
+    assert submission["listing"]["website_url"] == metadata["Homepage"]
+    assert submission["listing"]["documentation_url"] == metadata["Documentation"]
     assert (PLUGIN / submission["listing"]["logo_path"]).is_file()
     assert (PLUGIN / submission["test_cases_path"]).is_file()
 
 
 async def test_discovered_branding_and_static_tool_catalog_match_the_runtime() -> None:
-    async with http_session() as (client, _):
+    async with http_session() as (client, http):
         assert client.server_info is not None and client.server_info.icons
+        metadata = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["urls"]
+        assert client.server_info.website_url == metadata["Homepage"]
+        discovery = (await http.get("/")).json()
+        assert discovery["documentation"] == metadata["Documentation"]
+        assert discovery["streamable_http"] != discovery["documentation"]
         icon = client.server_info.icons[0]
         assert icon.mime_type == "image/png"
         assert icon.sizes == ["230x230"]

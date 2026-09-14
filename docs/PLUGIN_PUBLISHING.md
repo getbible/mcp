@@ -1,5 +1,8 @@
 # Publish the GetBible plugin
 
+Use [getBible.net](https://getBible.net) as the project website and
+[getBible.net/mcp](https://getBible.net/mcp) as the MCP usage documentation page.
+
 The GetBible plugin connects ChatGPT and Codex to the existing official MCP endpoint,
 **https://mcp.getbible.net/**. The server supplies the tools, schemas and API contracts. This
 repository supplies the plugin package, study guidance and review materials. API hosting remains
@@ -9,7 +12,7 @@ Use the complete URL above: the endpoint is `/`, with no `/mcp` or API-version s
 Streamable HTTP and no authentication for public access. The plugin does not require an XML
 manifest, a browser page, a JavaScript server or a custom UI.
 
-These materials target MCP package **2.1.0**, including the dictionary-index search tool. They
+These materials target MCP package **2.1.1**, including the dictionary-index search tool. They
 are prepared for the publisher; public submission still requires final policy information,
 the matching live runtime, and recorded client tests.
 
@@ -73,12 +76,12 @@ request to `/` can remain open because it receives an event stream. A successful
 response identifies the running package; `/readyz` checks application startup. Neither proves
 that every upstream service works.
 
-Once the API operator confirms package 2.1.0 is live, run the supplied endpoint check from an
+Once the API operator confirms package 2.1.1 is live, run the supplied endpoint check from an
 activated development environment with this repository's dependencies installed:
 
 ```bash
-python scripts/check_endpoint.py --expect-version 2.1.0
-python scripts/check_endpoint.py --expect-version 2.1.0 --upstreams
+python scripts/check_endpoint.py --expect-version 2.1.1
+python scripts/check_endpoint.py --expect-version 2.1.1 --upstreams
 ```
 
 The first command checks discovery and protocol behavior. The second explicitly adds representative
@@ -91,7 +94,7 @@ included native tokens and spans. This does not establish ChatGPT acceptance, di
 or successful dictionary, commentary, bookmark and v2 requests. Run and record those cases before
 claiming them as tested.
 
-After the 2.1.0 upgrade, discovery should expose 13 tools, including `search_dictionary_entries`.
+After the 2.1.1 upgrade, discovery should expose 13 tools, including `search_dictionary_entries`.
 
 The study instructions and resources come from the MCP server; this package contains no bundled
 skills or UI. Repeat the study cases with the connection enabled and confirm that the discovered
@@ -141,7 +144,7 @@ See the [publishing flow](https://developers.openai.com/plugins/deploy/submissio
 
 ## Maintain the published plugin
 
-The plugin package starts at **1.0.0**; the matching MCP runtime is **2.1.0**. Their versions and
+The plugin package is **1.0.1**; the matching MCP runtime is **2.1.1**. Their versions and
 the directory listing have separate lifecycles. A merged code
 change can release a new PyPI package; the API operator decides when the hosted runtime uses it.
 A changed OpenAPI contract can alter the advertised operation schemas without changing the

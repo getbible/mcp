@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "getbible-mcp"
-version = "2.1.0"
+version = "2.1.1"
 description = "Complete versioned GetBible API server for the Model Context Protocol"
 readme = "README.md"
 license = "GPL-2.0-or-later"
@@ -44,8 +44,8 @@ dev = [
 getbible-mcp = "getbible_mcp.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/getbible/mcp"
-Documentation = "https://github.com/getbible/mcp/blob/main/docs/CLIENTS.md"
+Homepage = "https://getBible.net"
+Documentation = "https://getBible.net/mcp"
 Repository = "https://github.com/getbible/mcp"
 Support = "https://git.vdm.dev/getBible/support"
 Changelog = "https://github.com/getbible/mcp/blob/main/CHANGELOG.md"

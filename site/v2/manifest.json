@@ -1,7 +1,7 @@
 {
   "name": "GetBible MCP",
   "registry_name": "net.getbible/mcp",
-  "mcp_server_version": "2.1.0",
+  "mcp_server_version": "2.1.1",
   "status": "stable",
   "endpoint_note": "The official public MCP endpoint is https://mcp.getbible.net/. Use the exact root URL; select upstream API versions with tool arguments.",
   "transports": {
@@ -99,6 +99,7 @@
     }
   ],
   "documentation": {
+    "website": "https://getBible.net/mcp",
     "ai": "llms.txt",
     "api": "api.md",
     "usage_policy": "usage-policy.md",

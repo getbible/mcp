@@ -6,6 +6,9 @@
 [![PyPI](https://img.shields.io/pypi/v/getbible-mcp.svg)](https://pypi.org/project/getbible-mcp/)
 [![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
+**Project and API documentation:** [getBible.net](https://getBible.net) ·
+**MCP usage guide:** [getBible.net/mcp](https://getBible.net/mcp).
+
 Read-only Model Context Protocol access to all nine GetBible API contracts over both standard MCP
 transports:
 
@@ -21,6 +24,7 @@ upstream v2. Dictionary, commentary and bookmark operations use v1.
 **GetBible's official MCP endpoint is [https://mcp.getbible.net/](https://mcp.getbible.net/).**
 Add that exact URL to your AI application's remote MCP connections and select **Streamable HTTP**.
 The domain root is the protocol endpoint; do not append `/mcp` or an API version.
+The [MCP usage page](https://getBible.net/mcp) explains how to connect and use the service.
 
 One connection provides Bible retrieval, reference lookup, full-text search, dictionaries,
 commentaries and public bookmarks across all supported API versions. Your client can discover
@@ -244,7 +248,7 @@ documents, CLI behavior and release packaging. Tests use local fixtures and mock
 
 To test the official service explicitly, run `.venv/bin/python scripts/check_endpoint.py`.
 Add `--upstreams` to perform representative read-only requests across all nine API contracts,
-and `--expect-version 2.1.0` when checking this release after deployment. The probe bounds requests,
+and `--expect-version 2.1.1` when checking this release after deployment. The probe bounds requests,
 response sizes and timeouts; it never runs automatically in CI. A successful health response alone
 does not establish that API lookups work. See [client testing](docs/CLIENTS.md#verify-a-remote-endpoint).
 

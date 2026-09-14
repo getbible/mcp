@@ -1,6 +1,8 @@
 # GetBible MCP 2.0
 
 Read-only MCP access to all nine GetBible API contracts.
+Project and API documentation: https://getBible.net
+MCP usage documentation: https://getBible.net/mcp
 Official public Streamable HTTP endpoint: https://mcp.getbible.net/
 Use that root URL exactly; do not append /mcp or an API version. API versions are tool arguments.
 Other GetBible MCP hosts use their own complete endpoint URLs.

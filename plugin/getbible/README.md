@@ -1,5 +1,8 @@
 # GetBible plugin package
 
+Project website: [getBible.net](https://getBible.net).
+MCP usage documentation: [getBible.net/mcp](https://getBible.net/mcp).
+
 GetBible provides read-only Bible retrieval, reference lookup, scripture search, dictionaries,
 commentaries and public study topics through **https://mcp.getbible.net/**. Public access is free,
 rate limited and requires no account. Use the exact root URL with Streamable HTTP.
@@ -17,8 +20,8 @@ already approved or listed in the public Plugins Directory. Follow the
 - `submission.json`: listing copy and operator actions; not an official upload format.
 - `test-cases.json`: seven positive and three negative client acceptance cases.
 
-The plugin package version, initially **1.0.0**, is independent of the Python runtime version.
-These materials target MCP **2.1.0**. A PyPI release does not deploy the API or publish a directory
+The plugin package version, currently **1.0.1**, is independent of the Python runtime version.
+These materials target MCP **2.1.1**. A PyPI release does not deploy the API or publish a directory
 listing. Proposed privacy and terms links require completed, approved public policies before
 submission; see the handoff. The server supplies study instructions and documentation resources.
 There are no bundled skills, custom widgets, install scripts or additional server processes.

@@ -64,7 +64,7 @@ class Settings:
     request_timeout_seconds: float = 20.0
     max_response_bytes: int = 32 * 1024 * 1024
     max_parallel_hash_checks: int = 10
-    user_agent: str = f"getbible-mcp/{__version__} (+https://getbible.life)"
+    user_agent: str = f"getbible-mcp/{__version__} (+https://getBible.net)"
     allowed_hosts: tuple[str, ...] = (
         "mcp.getbible.net",
         "mcp.getbible.net:*",

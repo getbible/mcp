@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 — 2026-09-14
+
+- Use https://getBible.net as the project website in documentation, package and plugin metadata, and MCP server discovery.
+- Point MCP usage documentation and HTTP discovery at https://getBible.net/mcp.
+- Keep the official Streamable HTTP service at https://mcp.getbible.net/ and retain configurable host URLs.
+
 ## 2.1.0 — 2026-09-14
 
 - Add bounded dictionary-index lookup with exact identifiers, accent-insensitive matching and pagination.
