@@ -10,7 +10,8 @@ Python, JavaScript and PHP clients can connect to an existing remote MCP service
 language-specific copies of the server. MCP is a JSON-RPC protocol, not a replacement REST API.
 Ordinary applications can still use GetBible's HTTP APIs directly.
 
-The protocol endpoint is `/mcp`, independent of upstream API versions. Tool `api_version` chooses
+The host selects the protocol endpoint path: `/` and named paths such as `/mcp` are supported,
+independently of upstream API versions. Tool `api_version` chooses
 scripture/query/search v2 or v3, or study/bookmark v1. Scripture conveniences default to v3.
 
 ## Public library interface

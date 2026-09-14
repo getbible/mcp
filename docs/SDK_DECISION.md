@@ -26,7 +26,7 @@ scripture data, the underlying REST endpoints remain a valid direct integration.
 |---|---|
 | Python MCP SDK 2.2.0 | The stable official protocol library pinned in the dependency files |
 | `getbible-mcp` 2.0.0 | This server's package release |
-| `/mcp` path | The MCP protocol endpoint, independent of upstream versions |
+| HTTP endpoint path | Selected by the host; `/mcp` is the factory default, and `/` is supported. Upstream versions remain tool arguments. |
 | Tool `api_version` | The upstream contract: v3 by default or explicit v2 for scripture conveniences; v1 for study/bookmarks |
 
 Dependency pins and API snapshots are independently reviewed release inputs. Evaluate SDK upgrades

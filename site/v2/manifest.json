@@ -1,12 +1,13 @@
 {
   "name": "GetBible MCP",
   "registry_name": "net.getbible/mcp",
-  "mcp_server_version": "2.0.0",
+  "mcp_server_version": "2.0.1",
   "status": "stable",
-  "endpoint_note": "The /mcp protocol endpoint is independent of upstream API versions; its host is supplied by the consuming application.",
+  "endpoint_note": "The host supplies the exact MCP endpoint URL, including a root or named path; upstream API versions remain tool arguments.",
   "transports": {
     "streamable_http": {
-      "path": "/mcp",
+      "default_path": "/mcp",
+      "host_selects_path": true,
       "requires_consumer_url": true
     },
     "stdio": {

@@ -2,9 +2,10 @@
 
 GetBible MCP exposes scripture, reference lookup and full-text search in v2 and v3, plus dictionaries,
 commentaries and public topic bookmarks in v1. Both stdio and Streamable HTTP expose the same tools,
-resources and integration prompt. The `/mcp` protocol endpoint supports all these versions; select
-the upstream version with `api_version`. This is the MCP package 2.0 guide, independent of upstream
-API version numbering.
+resources and integration prompt. Use the exact MCP endpoint URL supplied by the hosting application;
+its path may be `/` or a named path such as `/mcp`. Select the upstream version with `api_version`,
+independently of that path. This is the MCP package 2.0 guide, independent of upstream API version
+numbering.
 
 ## Discover before calling
 

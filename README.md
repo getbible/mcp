@@ -9,7 +9,7 @@
 Read-only Model Context Protocol access to all nine GetBible API contracts over both standard MCP
 transports:
 
-- **Streamable HTTP** through the ASGI application, using the `/mcp` protocol endpoint
+- **Streamable HTTP** through the ASGI application, at the exact endpoint supplied by its host
 - **stdio** for developers who install the package and let an AI client launch it locally
 
 Both transports expose exactly the same tools, resources, prompts, validation, and scripture-cache
@@ -36,7 +36,7 @@ is preserved, including v3 verse tokens, spans, paragraph markers and additional
 
 | Transport | Who runs the server? | How a client connects | Best use |
 |---|---|---|---|
-| Streamable HTTP | The consuming application | The application's published `/mcp` URL | Remote MCP clients |
+| Streamable HTTP | The consuming application | The application's published MCP endpoint URL | Remote MCP clients |
 | stdio | The developer installs this package locally | Client launches `getbible-mcp --transport stdio` | Desktop tools, private environments, local process control |
 
 stdio does not create a public endpoint. The MCP host starts the command as a child process and
@@ -44,6 +44,8 @@ exchanges JSON-RPC messages over standard input and output. That local process s
 from the public GetBible API.
 
 Streamable HTTP connects to a remote MCP service using the same package and tool contract.
+The host chooses its endpoint path, including `/` or a named path such as `/mcp`. Use the supplied
+URL exactly; upstream API versions remain tool arguments.
 
 ## Public API access and translation rights
 
@@ -161,6 +163,9 @@ application. `getbible_mcp.create_runtime(..., streamable_http_path="/mcp")` ret
 MCP server, client and settings for consumers needing the individual components. Importing the
 package does not create a default client or server.
 
+The factory default is `/mcp`; the host can select `/` or another supported exact path. Clients use
+the complete endpoint URL published by that host, without appending an API version or assuming a suffix.
+
 The embedding application owns the ASGI lifespan. If mounting the returned application in a parent,
 the parent must enter the child's `app.router.lifespan_context(app)` so MCP startup and HTTP client
 cleanup run correctly. See [architecture](docs/ARCHITECTURE.md) for package boundaries and
@@ -225,7 +230,7 @@ tests/                  Unit and protocol integration tests
 
 ## Versioning
 
-Package release 2.0.0 uses the `/mcp` protocol endpoint and the stable official Python MCP SDK 2.2.0.
+Package release 2.0.1 uses the stable official Python MCP SDK 2.2.0 and a host-selected HTTP endpoint.
 Package versions and upstream API versions are independent. Scripture tools default to v3; v2
 remains fully available through explicit version selection. Never mix upstream v2 and v3 payloads
 under one cache key.
