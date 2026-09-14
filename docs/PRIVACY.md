@@ -59,6 +59,7 @@ requesting access, correction or deletion of GetBible-held personal data, includ
 exceptions and response handling. Identify the operator responsible for these requests. This
 information must be usable by someone without a GetBible account.
 
-General technical issues can be reported through the
-[GetBible MCP issue tracker](https://github.com/getbible/mcp/issues). Issues are public: do not post
-tokens, personal data or sensitive privacy requests there.
+General technical support starts at the
+[GetBible support site](https://git.vdm.dev/getBible/support), which this repository identifies as
+its support destination. Do not post tokens, personal data or sensitive privacy requests in public
+support discussions. The operator must provide the private contact route described above.

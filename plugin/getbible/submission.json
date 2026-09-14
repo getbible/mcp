@@ -10,7 +10,7 @@
     "short_description": "Read and study the Bible with scripture search, dictionaries, commentaries and public topics.",
     "long_description": "GetBible brings read-only Bible study tools into your conversation. Retrieve passages, compare available translations and API versions, search scripture, inspect original-language annotations where supplied, and consult published dictionaries, commentaries and public bookmark topics. The tools preserve returned verse data and identify the sources used. Study guidance connects these resources through references and identifiers actually present in the data, keeps quotations separate from interpretation, and reports missing coverage. One connection covers Bible, reference-query and search APIs v2/v3, plus dictionaries, commentaries and bookmarks v1. Public access is free without an account, subject to traffic limits. Content remains subject to its publisher's rights.",
     "website_url": "https://getbible.life/",
-    "support_url": "https://github.com/getbible/mcp/issues",
+    "support_url": "https://git.vdm.dev/getBible/support",
     "privacy_policy_url": "https://github.com/getbible/mcp/blob/main/docs/PRIVACY.md",
     "terms_url": "https://github.com/getbible/mcp/blob/main/docs/TERMS.md",
     "logo_path": "assets/logo.png"
@@ -49,7 +49,7 @@
     },
     {
       "field": "support_url",
-      "action": "Confirm that the public GitHub issue tracker is the intended technical-support channel and provide the administrator contact route for access-token requests. Do not ask users to post tokens in issues."
+      "action": "Confirm the existing GetBible support site is accessible to users and reviewers, and provide the administrator contact route for private access-token requests. GitHub issues are disabled for this repository. Do not ask users to post tokens in public discussions."
     },
     {
       "field": "category_and_availability",
