@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2 — 2026-09-14
+
+- Require a verified PR merge into `main` before production publication; remove manual release dispatch.
+- Retry temporarily missing or incomplete PyPI metadata after upload while preserving strict artifact identity checks.
+- Keep the 2.0.1 runtime, all nine API contracts and the configurable domain-root HTTP endpoint.
+
 ## 2.0.1 — 2026-09-14
 
 - Allow consuming applications to serve Streamable HTTP directly at the domain root.

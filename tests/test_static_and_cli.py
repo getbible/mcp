@@ -62,9 +62,15 @@ def test_testpypi_workflow_is_manual_and_tokenless() -> None:
 
 def test_pypi_workflow_uses_validated_artifact_and_protected_token() -> None:
     workflow = (ROOT / ".github/workflows/publish-pypi.yml").read_text(encoding="utf-8")
-    assert "workflow_dispatch:" in workflow
-    assert 'default: ""' in workflow
+    assert "workflow_dispatch:" not in workflow
+    assert "pull_request:" not in workflow
+    assert "pull_request_target:" not in workflow
     assert "branches: [main]" in workflow
+    assert "github.event_name == 'push'" in workflow
+    assert "github.ref == 'refs/heads/main'" in workflow
+    assert "pull-requests: read" in workflow
+    assert 'python scripts/verify_main_merge.py --output "$GITHUB_OUTPUT"' in workflow
+    assert "if: steps.merge.outputs.allowed == 'true'" in workflow
     assert "needs: [prepare, validate, release-check]" in workflow
     assert "ref: ${{ needs.prepare.outputs.ref }}" in workflow
     assert "if: needs.prepare.outputs.publish == 'true'" in workflow
@@ -74,6 +80,7 @@ def test_pypi_workflow_uses_validated_artifact_and_protected_token() -> None:
     assert "pypa/gh-action-pypi-publish@release/v1" in workflow
     assert "password: ${{ secrets.PYPI_MCP_TOKEN }}" in workflow
     assert "print-hash: true" in workflow
+    assert "--require-complete --attempts 12 --retry-delay 10" in workflow
 
 
 def test_cli_defaults_to_stdio(monkeypatch: pytest.MonkeyPatch) -> None:
