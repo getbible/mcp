@@ -1,13 +1,56 @@
 # Connecting MCP clients
 
+## Official GetBible endpoint
+
+Connect to **[https://mcp.getbible.net/](https://mcp.getbible.net/)** using **Streamable HTTP**.
+In your AI application's MCP connection settings, enter that exact URL and give the connection
+a name such as `GetBible`. No account or token is required for free public access. Do not append
+`/mcp`, `/v2` or `/v3`.
+
+The endpoint exposes Bible, reference-query and search APIs v2/v3, plus dictionaries,
+commentaries and public bookmarks v1. After connecting, your client discovers the available
+tools, documentation resources and integration prompt. Use `query_verses` for references,
+`search_verses` for text searches, and `discover_apis` to explore the complete versioned API catalog.
+
+For example, an application using the official Python MCP SDK can request a passage:
+
+```python
+import asyncio
+
+from mcp import Client
+from mcp.client.streamable_http import streamable_http_client
+
+
+async def main():
+    async with Client(
+        streamable_http_client("https://mcp.getbible.net/"), cache=None
+    ) as client:
+        result = await client.call_tool(
+            "query_verses",
+            {"translation": "kjv", "references": "John 3:16", "api_version": "v3"},
+        )
+        print(result.structured_content)
+
+
+asyncio.run(main())
+```
+
+The free endpoint uses the same anonymous limits as GetBible search. Handle HTTP `429`, wait
+for the duration indicated by `Retry-After`, and reduce concurrent requests. Contact the GetBible
+administrators to request a token for this or another GetBible endpoint. If issued one, configure
+your MCP client's secure HTTP authentication settings to send `Authorization: Bearer <your-token>`.
+Tokens are issued for individual endpoints; use them only with the endpoint approved by the
+administrators. The [usage policy](../site/v2/usage-policy.md) lists the default limits.
+
 ## Choose a transport
 
 Use Streamable HTTP when an application provides a remote MCP service and your client supports
 outbound HTTPS. Use stdio when the client launches a local server process. Both expose the same
 GetBible tools, resources and prompts across all nine upstream API contracts.
 
-The hosting application supplies the complete protocol endpoint URL. Its path may be `/`, `/mcp`,
-or another supported exact path; this package does not assume a public host or fixed endpoint path.
+The official endpoint is `https://mcp.getbible.net/`. For another instance, use the complete URL
+supplied by its operator. Its path may be `/`, `/mcp`, or another supported exact path; the library
+does not require a particular hostname or path.
 Scripture tools default to upstream v3, with v2 available explicitly through `api_version`.
 
 ## Python, JavaScript and PHP

@@ -1,9 +1,17 @@
 # GetBible MCP 2.0
 
-Read-only MCP access to all nine GetBible API contracts. Use the exact protocol endpoint URL supplied
-by the host; its path may be /, /mcp, or another supported path. API versions are tool arguments.
+Read-only MCP access to all nine GetBible API contracts.
+Official public Streamable HTTP endpoint: https://mcp.getbible.net/
+Use that root URL exactly; do not append /mcp or an API version. API versions are tool arguments.
+Other GetBible MCP hosts use their own complete endpoint URLs.
 Local transport: getbible-mcp --transport stdio. Both transports have the same tools, resources and
 prompts. Python MCP SDK 2.2.0 implements protocol 2026-07-28.
+
+Public access is free; no account or token is required by default. Anonymous MCP requests use the
+same rate limits as public search. Honor HTTP 429 and Retry-After; use backoff when retrying.
+Contact GetBible administrators for an optional token for MCP or any API endpoint. Configure an
+issued token securely as Authorization: Bearer in the client; never put it in a URL or tool arguments.
+See usage-policy.md for the limits and access details.
 
 ## Start here
 

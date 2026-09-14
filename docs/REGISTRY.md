@@ -2,12 +2,15 @@
 
 The repository includes `server.json` for the official MCP Registry with the custom-domain name
 `net.getbible/mcp`. Its package entry identifies `getbible-mcp` on PyPI and the stdio transport.
-No hosted service is advertised before an application actually publishes and verifies one.
+Its remote entry identifies GetBible's official Streamable HTTP endpoint,
+[https://mcp.getbible.net/](https://mcp.getbible.net/). Clients may use that URL directly without
+installing the server package. Free public access is subject to the
+[usage policy](../site/v2/usage-policy.md); administrators issue tokens on request.
 
 ## Package discovery
 
 The Registry describes installable packages; it does not host package code. After
-`getbible-mcp==2.0.0` is published to PyPI:
+the matching `getbible-mcp` version is published to PyPI:
 
 1. Keep the verification marker `<!-- mcp-name: net.getbible/mcp -->` in `README.md`.
 2. Keep the package version in `server.json` synchronized with the published release.
@@ -21,7 +24,7 @@ The package entry is:
 {
   "registryType": "pypi",
   "identifier": "getbible-mcp",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "transport": {"type": "stdio"}
 }
 ```

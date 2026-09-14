@@ -5,6 +5,7 @@
 - Allow consuming applications to serve Streamable HTTP directly at the domain root.
 - Keep protocol discovery and tool/resource behavior consistent at configurable HTTP paths.
 - Clarify host-selected endpoint paths in generic client and library documentation.
+- Document the official public endpoint, search-equivalent anonymous limits and optional token access.
 
 ## 2.0.0 — 2026-09-14
 

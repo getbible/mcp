@@ -3,12 +3,11 @@
   "registry_name": "net.getbible/mcp",
   "mcp_server_version": "2.0.1",
   "status": "stable",
-  "endpoint_note": "The host supplies the exact MCP endpoint URL, including a root or named path; upstream API versions remain tool arguments.",
+  "endpoint_note": "The official public MCP endpoint is https://mcp.getbible.net/. Use the exact root URL; select upstream API versions with tool arguments.",
   "transports": {
     "streamable_http": {
-      "default_path": "/mcp",
-      "host_selects_path": true,
-      "requires_consumer_url": true
+      "url": "https://mcp.getbible.net/",
+      "custom_endpoints_supported": true
     },
     "stdio": {
       "command": "getbible-mcp",
@@ -112,9 +111,22 @@
   },
   "access": {
     "public": true,
-    "authentication": false,
-    "api_key": false,
-    "request_quota": false
+    "free": true,
+    "account_required": false,
+    "token_required_by_default": false,
+    "anonymous_rate_limits": true,
+    "rate_limit_policy": "usage-policy.md",
+    "optional_tokens": {
+      "request": "Contact GetBible administrators for a token for MCP or any API endpoint.",
+      "header": "Authorization",
+      "scheme": "Bearer",
+      "secure_client_configuration": true
+    },
+    "retry": {
+      "status": 429,
+      "honor_retry_after": true,
+      "backoff": true
+    }
   },
   "documentation_version": "2.0"
 }

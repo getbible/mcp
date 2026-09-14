@@ -44,8 +44,8 @@ dev = [
 getbible-mcp = "getbible_mcp.cli:main"
 
 [project.urls]
-Homepage = "https://mcp.getbible.net/"
-Documentation = "https://mcp.getbible.net/v2/"
+Homepage = "https://github.com/getbible/mcp"
+Documentation = "https://github.com/getbible/mcp/blob/main/docs/CLIENTS.md"
 Repository = "https://github.com/getbible/mcp"
 Issues = "https://github.com/getbible/mcp/issues"
 Changelog = "https://github.com/getbible/mcp/blob/main/CHANGELOG.md"

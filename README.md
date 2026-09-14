@@ -9,12 +9,32 @@
 Read-only Model Context Protocol access to all nine GetBible API contracts over both standard MCP
 transports:
 
-- **Streamable HTTP** through the ASGI application, at the exact endpoint supplied by its host
+- **Streamable HTTP** at the official endpoint [https://mcp.getbible.net/](https://mcp.getbible.net/), or another host's MCP URL
 - **stdio** for developers who install the package and let an AI client launch it locally
 
 Both transports expose exactly the same tools, resources, prompts, validation, and scripture-cache
 integrity rules. Scripture tools default to upstream v3; select `api_version: "v2"` explicitly for
 upstream v2. Dictionary, commentary and bookmark operations use v1.
+
+## Connect to the official endpoint
+
+**GetBible's official MCP endpoint is [https://mcp.getbible.net/](https://mcp.getbible.net/).**
+Add that exact URL to your AI application's remote MCP connections and select **Streamable HTTP**.
+The domain root is the protocol endpoint; do not append `/mcp` or an API version.
+
+One connection provides Bible retrieval, reference lookup, full-text search, dictionaries,
+commentaries and public bookmarks across all supported API versions. Your client can discover
+tools, read the complete API contracts and use the integration-planning prompt. All operations
+are read-only; select upstream versions through tool arguments.
+
+Public access is free and needs no account or token. It uses the same default anonymous traffic
+limits as GetBible search. Excess traffic receives HTTP `429`; honor `Retry-After` and reduce your
+request rate. To request a token for MCP or another GetBible endpoint, contact the GetBible
+administrators. See the [access policy](site/v2/usage-policy.md) for limits and
+[client guide](docs/CLIENTS.md) for connection and token instructions.
+
+You can also connect to a privately operated instance using the URL supplied by its operator.
+The Python library supports configurable endpoint URLs and local stdio clients.
 
 ## API coverage
 
@@ -36,7 +56,7 @@ is preserved, including v3 verse tokens, spans, paragraph markers and additional
 
 | Transport | Who runs the server? | How a client connects | Best use |
 |---|---|---|---|
-| Streamable HTTP | The consuming application | The application's published MCP endpoint URL | Remote MCP clients |
+| Streamable HTTP | GetBible or another service operator | `https://mcp.getbible.net/` or the operator's MCP URL | Remote MCP clients |
 | stdio | The developer installs this package locally | Client launches `getbible-mcp --transport stdio` | Desktop tools, private environments, local process control |
 
 stdio does not create a public endpoint. The MCP host starts the command as a child process and
@@ -49,8 +69,9 @@ URL exactly; upstream API versions remain tool arguments.
 
 ## Public API access and translation rights
 
-The public GetBible endpoints require no account or API key. HTTP errors and upstream availability still apply;
-an integration must handle them instead of assuming every request succeeds.
+Public access requires no account or token by default. Traffic limits, HTTP errors and upstream
+availability still apply; an integration must handle them instead of assuming every request succeeds.
+Administrators issue tokens for approved access to individual endpoints.
 
 Use the translation catalog for copyright and rich translation metadata; query/search and chapter
 results carry compact metadata. Preserve and honor each translation's rights, and each study

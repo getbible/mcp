@@ -2,11 +2,42 @@
 
 ## Access
 
-The public GetBible scripture, query, search, dictionary, commentary and bookmark endpoints are
-read-only and require no account or API key. The supplied MCP service adds no authentication,
-subscription or per-address request quota. Applications must still handle HTTP errors, unavailable
-upstreams and the published input/response limits. Read-only search POST submits a lookup, not a
-content change.
+The official public MCP endpoint is [`https://mcp.getbible.net/`](https://mcp.getbible.net/), using
+Streamable HTTP at the root URL. Access is free, with no account or token required by default.
+The public GetBible scripture, query, search, dictionary, commentary and bookmark endpoints also
+support anonymous access. These services are read-only; search POST submits a lookup, not a content
+change. Clients connecting to another GetBible MCP host use its complete endpoint URL and access policy.
+
+## Anonymous request limits
+
+The official MCP service uses the same anonymous limits as public search, per client address:
+
+| Limit | Default |
+|---|---|
+| Request rate | 50 requests per second |
+| Burst allowance | 250 requests |
+| Nominal hourly budget | 10,000 requests per hour |
+| Nominal daily budget | 100,000 requests per day |
+| Concurrent connections | 100 per address |
+
+The hourly and daily values are sustained-rate budgets, not hard calendar-hour or calendar-day
+quotas. They do not promise a fixed number of requests before rejection or reset at a clock boundary.
+Requests must satisfy the applicable limits together.
+
+Handle HTTP 429 by honoring `Retry-After` when present. Back off and reduce concurrency; avoid
+immediate retry loops. Applications must also handle other HTTP errors, unavailable upstreams and
+the published input/response limits. Each API endpoint's access policy and response headers apply.
+
+## Optional tokens
+
+Contact GetBible administrators to request a token for MCP or any API endpoint. Tokens are optional
+for normal public access. Administrators provide the token's scope and applicable access policy;
+do not assume one token is valid for every host.
+
+Store an issued token in secure client configuration and send it using the
+`Authorization: Bearer <token>` HTTP header. Never place tokens in URLs, tool arguments, source code,
+logs or shared examples. A token configured for an MCP connection is a credential for that connection;
+it is not a tool parameter or an instruction to forward credentials to upstream services.
 
 ## Content rights and provenance
 

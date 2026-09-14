@@ -13,5 +13,19 @@
         "type": "stdio"
       }
     }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.getbible.net/",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Optional administrator-issued GetBible token. Supply Bearer followed by the token; leave unset for anonymous access.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
   ]
 }
