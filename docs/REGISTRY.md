@@ -24,7 +24,7 @@ The package entry is:
 {
   "registryType": "pypi",
   "identifier": "getbible-mcp",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "transport": {"type": "stdio"}
 }
 ```

@@ -200,9 +200,11 @@ GitHub keeps them for 30 days in the run's **Artifacts** section under the name
 workflow**, so a package can be downloaded and tested without publishing anything.
 
 The separate `publish-testpypi` workflow is manually triggered and publishes validated artifacts to
-TestPyPI. Production publishing runs after a new package version reaches `main`; it validates the
-exact revision, publishes the verified artifact to PyPI, and creates its GitHub tag/release. Manual
-dispatch retries incomplete publication without re-uploading an existing PyPI version.
+TestPyPI. Production publishing runs only after a pull request is merged into `main`. GitHub must
+confirm that the triggering commit is that PR's final merge commit before the workflow validates
+and publishes the package and creates its GitHub tag/release. Open pull requests, direct pushes
+and manual dispatch cannot publish to production. Retry an incomplete release by rerunning its
+original post-merge workflow; matching existing PyPI files are not uploaded again.
 
 TestPyPI uses Trusted Publishing. Production PyPI reads the project or account token only from the
 `PYPI_MCP_TOKEN` GitHub Actions secret in the protected `pypi` environment. See
@@ -251,7 +253,7 @@ tests/                  Unit and protocol integration tests
 
 ## Versioning
 
-Package release 2.0.1 uses the stable official Python MCP SDK 2.2.0 and a host-selected HTTP endpoint.
+Package release 2.0.2 uses the stable official Python MCP SDK 2.2.0 and a host-selected HTTP endpoint.
 Package versions and upstream API versions are independent. Scripture tools default to v3; v2
 remains fully available through explicit version selection. Never mix upstream v2 and v3 payloads
 under one cache key.

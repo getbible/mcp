@@ -6,8 +6,9 @@ The project has four automated package paths:
 2. A manually started `publish-testpypi` run validates and publishes to TestPyPI.
 3. `sync-openapi` checks upstream contracts daily and on manual dispatch, proposing a tested patch
    release through one reviewable pull request.
-4. A push to `main` publishes a newly versioned package after validation. Manual `publish-pypi`
-   dispatch retries or completes publication for the current package version.
+4. A PR merge into `main` publishes a newly versioned package after validation. The workflow
+   verifies the exact commit against GitHub's merged-PR records; direct pushes do not publish.
+   Production publication has no manual-dispatch or pull-request-check trigger.
 
 TestPyPI uses Trusted Publishing. Production PyPI uses the protected `PYPI_MCP_TOKEN` Actions
 secret.
@@ -69,7 +70,7 @@ Test the wheel in a clean environment:
 
 ```bash
 python3 -m venv /tmp/getbible-mcp-artifact
-/tmp/getbible-mcp-artifact/bin/python -m pip install ./getbible_mcp-2.0.0-py3-none-any.whl
+/tmp/getbible-mcp-artifact/bin/python -m pip install ./getbible_mcp-2.0.2-py3-none-any.whl
 /tmp/getbible-mcp-artifact/bin/getbible-mcp --version
 ```
 
@@ -113,11 +114,11 @@ python3 -m venv /tmp/getbible-mcp-testpypi
 /tmp/getbible-mcp-testpypi/bin/python -m pip install \
   --index-url https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple/ \
-  getbible-mcp==2.0.0
+  getbible-mcp==2.0.2
 /tmp/getbible-mcp-testpypi/bin/getbible-mcp --version
 ```
 
-Package versions are immutable on TestPyPI too. To test another upload after `2.0.0` exists there,
+Package versions are immutable on TestPyPI too. To test another upload after `2.0.2` exists there,
 increment all version declarations before running the workflow again.
 
 ## One-time production PyPI setup
@@ -147,19 +148,28 @@ Every public version declaration must match:
 Verify locally, using the intended release tag:
 
 ```bash
-.venv/bin/python scripts/verify_release.py v2.0.0
+.venv/bin/python scripts/verify_release.py v2.0.2
 ./scripts/check
 ```
 
-Merge the tested version change into `main`. The push starts `publish-pypi` automatically. A normal
-documentation-only merge at an already published version is a no-op.
+Merge the tested version change into `main`. The resulting push starts `publish-pypi` automatically.
+Before inspecting or writing release state, the workflow requires a closed, merged PR into this
+repository's `main` whose final merge commit equals the triggering SHA. This supports merge commits,
+squash merges and rebase merges, including reviewed contributions from forks. A direct push skips
+publication. A normal documentation-only merge at an already published version is a no-op.
 
-For a manual retry, open **Actions → publish-pypi → Run workflow** on `main` and leave `tag` empty to
-derive it from package metadata. An explicitly supplied tag must match that package version.
+For a retry, open the original post-merge **publish-pypi** run and choose **Re-run failed jobs** or
+**Re-run all jobs**. This preserves that run's commit and version even when `main` has advanced.
+There is no **Run workflow** production entry point, and opening or updating a PR cannot publish.
+
+The merge gate uses GitHub's
+[commit-associated pull requests API](https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit)
+with `pull-requests: read`. Missing, malformed or unavailable verification data never authorizes a release.
 
 ## What the production workflow does
 
-1. Checks Git tags, PyPI and GitHub releases separately. A fully published version needs no work.
+1. Verifies the triggering main commit came from a merged PR, then checks Git tags, PyPI and GitHub
+   releases separately. A fully published version needs no work.
 2. Pins the release to the existing tag's commit for retries, or the triggering `main` commit for a
    new version.
 3. Runs the reusable test workflow on that exact revision: Python 3.11–3.14, Ruff, strict mypy, unit
@@ -169,7 +179,9 @@ derive it from package metadata. An explicitly supplied tag must match that pack
    declaration against the intended tag.
 5. Records the immutable validated tag, then exposes `PYPI_MCP_TOKEN` only to the final publishing
    action and uploads the already verified distributions.
-6. Creates the matching GitHub release after package publication succeeds.
+6. Checks PyPI's file identities again before creating the matching GitHub release. Newly uploaded
+   metadata can take time to become visible: missing versions or incomplete file lists receive up
+   to 12 checks, with a 10-second delay between checks. Checksums must match on every attempt.
 
 The workflow has one concurrency lock and no release-event trigger, preventing recursive or parallel
 publication. If PyPI already contains the version, it skips the upload and can complete a missing
@@ -177,7 +189,8 @@ tag or GitHub release. Every existing PyPI file's SHA-256 must match the validat
 any tag write or resumed upload. A partial upload can then skip matching existing files and publish
 the missing distribution. Mismatched bytes stop the release: recover the original validated
 distributions or increment the package version. A tag is never moved. If a check or network request
-fails, publication stops; retry through manual dispatch after fixing the failure.
+fails, publication stops; rerun the original post-merge workflow after fixing the failure. Metadata
+retries never hide unexpected files, checksum mismatches, malformed responses or network failures.
 
 ## Verify the publication
 
@@ -185,7 +198,7 @@ After the workflow succeeds:
 
 ```bash
 python3 -m venv /tmp/getbible-mcp-test
-/tmp/getbible-mcp-test/bin/python -m pip install getbible-mcp==2.0.0
+/tmp/getbible-mcp-test/bin/python -m pip install getbible-mcp==2.0.2
 /tmp/getbible-mcp-test/bin/getbible-mcp --version
 ```
 
