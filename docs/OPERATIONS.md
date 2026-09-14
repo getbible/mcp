@@ -1,100 +1,57 @@
-# Operations
+# Package configuration and updates
 
-## Status and health
+## Configuration boundary
 
-```bash
-sudo ./manage status
-systemctl status getbible-mcp.service
-curl --fail http://127.0.0.1:3100/healthz
-curl --fail https://mcp.getbible.net/healthz
-```
+`Settings` supplies the upstream locations and request controls used by each runtime. Default values
+point to the public GetBible APIs. `Settings.from_env()` reads the corresponding environment values.
+A consuming application may construct settings explicitly or use the environment; MCP tool arguments
+cannot change the configured hosts.
 
-`/healthz` is a liveness check for the MCP process. It deliberately does not call the upstream APIs;
-otherwise a temporary API or network problem would cause the process supervisor to restart a healthy
-MCP service.
+| Service/version | Environment variable | Default |
+|---|---|---|
+| api/v2 | `GETBIBLE_API_V2_BASE` | `https://api.getbible.net/v2` |
+| api/v3 | `GETBIBLE_API_V3_BASE` | `https://api.getbible.net/v3` |
+| query/v2 | `GETBIBLE_QUERY_V2_BASE` | `https://query.getbible.net/v2` |
+| query/v3 | `GETBIBLE_QUERY_V3_BASE` | `https://query.getbible.net/v3` |
+| search/v2 | `GETBIBLE_SEARCH_V2_BASE` | `https://search.getbible.net/v2` |
+| search/v3 | `GETBIBLE_SEARCH_V3_BASE` | `https://search.getbible.net/v3` |
+| dictionaries/v1 | `GETBIBLE_DICTIONARIES_BASE` | `https://dictionaries.getbible.net/v1` |
+| commentaries/v1 | `GETBIBLE_COMMENTARIES_BASE` | `https://commentaries.getbible.net/v1` |
+| bookmarks/v1 | `GETBIBLE_BOOKMARKS_BASE` | `https://bookmarks.getbible.net/v1` |
 
-## Logs
+Each Bible API/query/search variable identifies its version explicitly. A trusted mirror must
+implement the selected contract and include the version suffix in its base URL.
 
-```bash
-sudo ./manage logs
-journalctl -u getbible-mcp.service --since today
-```
+## Request and transport controls
 
-stdio mode must keep stdout reserved for MCP messages. When debugging a locally launched stdio
-server, capture stderr through the MCP host rather than adding print statements.
+| Environment variable | Meaning | Default |
+|---|---|---|
+| `GETBIBLE_MCP_REQUEST_TIMEOUT` | Upstream request timeout in seconds | 20 |
+| `GETBIBLE_MCP_MAX_RESPONSE_BYTES` | Hard upstream response-size limit | 33,554,432 bytes |
+| `GETBIBLE_MCP_MAX_PARALLEL_HASH_CHECKS` | Concurrency for scope update checks | 10 |
+| `GETBIBLE_MCP_ALLOWED_HOSTS` | DNS-rebinding Host allowlist | Public GetBible MCP and local test hosts |
+| `GETBIBLE_MCP_ALLOWED_ORIGINS` | Allowed Origin values when present | Public GetBible MCP and local test origins |
 
-## Releases and rollback
+Choose response limits that fit the consumer's memory and workload. Whole translations and study
+modules can be large; chapter and entry operations avoid unnecessary bulk reads. These resource
+limits are library protections, not upstream API quotas.
 
-List releases and the active target:
+## Lifecycle and diagnostics
 
-```bash
-readlink -f /opt/getbible-mcp/current
-ls -1 /opt/getbible-mcp/releases
-```
+Applications using the factory interface must run the returned application's lifespan, including
+when embedding it in another ASGI application. The library retains no upstream result cache, session
+database or persistent scripture state; shutdown closes its HTTP client.
 
-`manage install` and `manage update` automatically restore the former target if the new systemd
-service or health check fails.
+The stdio transport reserves stdout for MCP messages. Route application logs and diagnostics to
+stderr through the MCP host. A healthy MCP process does not guarantee every upstream is available;
+clients must handle API timeouts and errors explicitly.
 
-For an intentional manual rollback:
+## Package and contract updates
 
-```bash
-sudo ln -s /opt/getbible-mcp/releases/RELEASE-ID /opt/getbible-mcp/.current-next
-sudo mv -Tf /opt/getbible-mcp/.current-next /opt/getbible-mcp/current
-sudo systemctl restart getbible-mcp.service
-sudo ./manage status
-```
+Use a tested `getbible-mcp` package version in the consuming project's dependency management. Update
+that dependency through the consuming project's normal validation process; this repository does not
+manage API servers, proxies or operating-system services.
 
-Only remove old release directories after confirming that no rollback will need them.
-
-## Configuration changes
-
-Edit the persistent environment file:
-
-```bash
-sudoedit /etc/getbible-mcp.env
-sudo systemctl restart getbible-mcp.service
-sudo ./manage status
-```
-
-Important controls:
-
-- `GETBIBLE_MCP_WORKERS`: Uvicorn worker count; default 2.
-- `GETBIBLE_MCP_REQUEST_TIMEOUT`: upstream timeout; default 20 seconds.
-- `GETBIBLE_MCP_MAX_RESPONSE_BYTES`: hard upstream response limit; default 32 MiB.
-- `GETBIBLE_MCP_MAX_PARALLEL_HASH_CHECKS`: concurrency for grouped/check operations; default 10.
-- `GETBIBLE_MCP_ALLOWED_HOSTS`: DNS-rebinding Host allowlist.
-- `GETBIBLE_MCP_ALLOWED_ORIGINS`: allowed Origin values when that header is present.
-
-The release manager preserves an existing Nginx site file because Certbot edits it in place. When a
-release changes the Nginx template, review the diff and merge the relevant location/security changes
-without removing Certbot's TLS directives:
-
-```bash
-diff -u /etc/nginx/sites-available/mcp.getbible.net.conf \
-  /opt/getbible-mcp/current/deploy/nginx/sites-available/mcp.getbible.net.conf
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-## Monitoring
-
-Monitor at least:
-
-- systemd active state and restart count;
-- `/healthz` externally over HTTPS;
-- Nginx 4xx/5xx rates and request latency;
-- MCP process memory and file descriptors;
-- upstream timeouts and HTTP errors in the journal;
-- disk use under `/opt/getbible-mcp/releases`;
-- TLS certificate renewal.
-
-The application itself stores no scripture, sessions, secrets, or database state. Backup the Git
-repository and `/etc/getbible-mcp.env`; releases can be rebuilt from source and the dependency lock.
-
-## Capacity
-
-The workload is primarily concurrent outbound HTTP. Two async workers are a conservative default.
-Measure before raising worker count because every worker has its own connection pool and memory.
-
-If a single host becomes insufficient, use multiple local ports or hosts behind an Nginx upstream.
-This server is stateless, so requests do not require sticky routing.
+For maintainers, `scripts/refresh_contracts.py --check` compares the nine current upstream documents
+with the packaged and static snapshots. `--write` refreshes them together. Review the changes and run
+`./scripts/check` before releasing a new package. See [publishing](PUBLISHING.md) for PyPI procedures.

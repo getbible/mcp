@@ -37,10 +37,9 @@ def create_app(
     *,
     path: str = "/mcp",
 ) -> Starlette:
-    """Create an ASGI application for a host such as the GetBible API engine.
+    """Create an embeddable ASGI application.
 
-    Run directly with ``uvicorn getbible_mcp:create_app --factory``. When mounted
-    in another ASGI app, enter ``app.router.lifespan_context(app)`` from the parent's
+    When mounted in another ASGI app, enter ``app.router.lifespan_context(app)`` from the parent's
     lifespan so the protocol manager and outbound client start and stop together.
     """
     from typing import cast

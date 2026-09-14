@@ -1,44 +1,66 @@
-# GetBible MCP V2
+# GetBible MCP 2.0
 
-GetBible MCP provides read-only access to GetBible API V2 for AI clients.
+Read-only MCP access to all nine GetBible API contracts. The protocol endpoint is /mcp; a consuming
+application supplies its public URL. Local transport: getbible-mcp --transport stdio. Both transports
+have the same tools, resources and prompts. Python MCP SDK 2.2.0 implements protocol 2026-07-28.
 
-Canonical remote MCP endpoint:
-https://mcp.getbible.net/v2
+## Start here
 
-Local stdio command after installing the package:
-getbible-mcp --transport stdio
+- discover_apis: service/version catalog and authoritative OpenAPI URLs.
+- describe_api_operation: list operations or inspect one operation's exact inputs/outputs/errors.
+- call_api_operation: execute a described read-only operation, including search POST.
+- resources/read getbible://docs/api: full integration guide.
+- resources/read getbible://openapi/{service}/{version}: complete packaged OpenAPI contract.
+- design_getbible_integration: integration planning prompt.
 
-Both transports expose identical tools, resources, prompts, schemas, and behavior.
+Services: api (v2/v3), query (v2/v3), search (v2/v3), dictionaries (v1), commentaries (v1),
+bookmarks (v1). Operation IDs and argument names are scoped to the selected service/version.
+Use parameters keyed by input_name; query.<name> disambiguates a name also used in the path.
 
-GetBible API V2 is public and requires no account, API key, authentication, subscription, payment,
-or request quota. Each translation's returned metadata contains its applicable copyright
-information. Preserve it. GetBible adds no extra copyright layer to scripture text.
+## Convenience tools
 
-## Essential documents
+- list_translations, list_books, list_chapters: discover metadata and valid coordinates.
+- get_scripture: whole translation/book/chapter with before/after scope SHA-1 checks.
+- query_verses: selected or grouped references; no fallback passage for invalid/missing references.
+- search_verses: full-text search and upstream filters/pagination.
+- get_hash, get_hash_manifest, check_for_updates: static scripture synchronization.
+Scripture tools default api_version to v3. Choose v2 explicitly for upstream v2 data.
 
-- API guide: https://mcp.getbible.net/v2/api.md
-- Public use policy: https://mcp.getbible.net/v2/usage-policy.md
-- Mandatory cache policy: https://mcp.getbible.net/v2/cache-policy.md
-- MCP manifest: https://mcp.getbible.net/v2/manifest.json
-- Tool catalog: https://mcp.getbible.net/v2/tool-catalog.json
-- Native API OpenAPI document: https://mcp.getbible.net/v2/openapi.json
-- Examples: https://mcp.getbible.net/v2/examples.md
+## Data and cache rules
 
-## Tool selection
+Preserve native JSON and unknown fields. V3 tokens, spans, paragraph markers and lexical data must
+not be flattened to v2. Retrieve rich translation metadata and rights from translation catalogs.
+Discover dictionary IDs, entry IDs and commentary coverage; chapter/verse 0 can be introductions.
+Bookmarks are public topics/references without scripture text or personal write operations.
 
-- list_translations: discover translations, language, scope, metadata, and hashes.
-- list_books: discover numbered and localized book names for one translation.
-- list_chapters: discover chapters and hashes for one translated book.
-- get_scripture: retrieve a whole translation, book, or chapter with its checked hash.
-- query_verses: retrieve selected or grouped verses and participating chapter hashes.
-- get_hash: retrieve one translation, book, or chapter hash.
-- get_hash_manifest: retrieve bulk checksum data for scheduled cache validation.
-- check_for_updates: compare stored hashes with current values and receive invalidation actions.
+The MCP keeps no persistent result cache. Query/search are non-cacheable by default. Downstream
+caches must never exceed 30 days (2592000 seconds) and must obey shorter HTTP freshness, Age,
+Expires, no-cache and no-store. Query/search TTL comes from HTTP headers, not a promised JSON field.
+Search query.sha/query.cache are source/engine metadata, not result checksums. Static scripture uses
+SHA-1; dictionary/commentary/bookmark manifests use SHA-256. Refresh atomically when hashes change.
+Honor each translation/module's rights and provenance; the MCP software GPL does not relicense data.
 
-## Mandatory rule
+## Documentation
 
-Every persisted scripture payload must be stored with the hash for its exact translation, book, or
-chapter scope. Revalidate at least weekly. If a hash changes, invalidate the changed scope and all
-cached descendants, then atomically fetch and store fresh scripture plus its new hash. Query results
-depend on every participating chapter hash. Treat hashes as opaque version tokens, not signatures.
-Honoring this hash-validation cycle is a condition of the GetBible API usage agreement.
+This directory documents MCP package 2.0 and every supported upstream API version.
+
+- Guide: api.md
+- Examples: examples.md
+- Cache policy: cache-policy.md
+- Usage policy: usage-policy.md
+- Manifest: manifest.json
+- Tool catalog: tool-catalog.json
+
+## Authoritative upstream OpenAPI documents
+
+- https://api.getbible.net/v2/openapi.json
+- https://api.getbible.net/v3/openapi.json
+- https://query.getbible.net/v2/openapi.json
+- https://query.getbible.net/v3/openapi.json
+- https://search.getbible.net/v2/openapi.json
+- https://search.getbible.net/v3/openapi.json
+- https://dictionaries.getbible.net/v1/openapi.json
+- https://commentaries.getbible.net/v1/openapi.json
+- https://bookmarks.getbible.net/v1/openapi.json
+
+Exact static copies: ../contracts/{service}-{version}.json

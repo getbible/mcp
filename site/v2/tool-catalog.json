@@ -1,14 +1,18 @@
 {
-  "server": "GetBible API V2",
-  "note": "The live MCP tools/list response is authoritative. Access is public with no API key or request quota. Preserve each translation's returned copyright metadata and honor the required hash cycle.",
+  "server": "GetBible MCP",
+  "note": "The live MCP tools/list response is authoritative. All tools are read-only. Scripture tools default to api_version v3; select v2 explicitly for upstream v2. Generic tools require service and api_version. Preserve native upstream data, source freshness and rights metadata.",
   "tools": [
-    {"name": "list_translations", "purpose": "Discover translations, copyright information, metadata, scope, and catalog hashes."},
-    {"name": "list_books", "purpose": "Discover numbered and localized book names and hashes."},
-    {"name": "list_chapters", "purpose": "Discover chapters and chapter hashes."},
-    {"name": "get_scripture", "purpose": "Retrieve a complete translation, book, or chapter with a consistency-checked hash."},
-    {"name": "query_verses", "purpose": "Retrieve selected or grouped verses and participating chapter hashes."},
-    {"name": "get_hash", "purpose": "Retrieve one exact translation, book, or chapter hash."},
-    {"name": "get_hash_manifest", "purpose": "Retrieve bulk checksum data for an efficient scheduled sweep."},
-    {"name": "check_for_updates", "purpose": "Compare cached hashes and return required invalidation actions."}
+    {"name": "list_translations", "purpose": "Discover a version's translations and rich metadata, including copyright."},
+    {"name": "list_books", "purpose": "Discover book names, numbers and available scope in a translation."},
+    {"name": "list_chapters", "purpose": "Discover chapters and their hashes in a translated book."},
+    {"name": "get_scripture", "purpose": "Read a whole translation, book or chapter with before/after scope SHA-1 consistency checks."},
+    {"name": "query_verses", "purpose": "Resolve selected or grouped references, preserving native data without a chapter-hash envelope."},
+    {"name": "search_verses", "purpose": "Search with matching modes, book/scope filters, exclusions, proximity, sorting and pagination."},
+    {"name": "get_hash", "purpose": "Read a static scripture translation, book or chapter SHA-1."},
+    {"name": "get_hash_manifest", "purpose": "Read bulk scripture checksums for cache synchronization."},
+    {"name": "check_for_updates", "purpose": "Compare stored hashes and identify invalidation actions without extending expired data."},
+    {"name": "discover_apis", "purpose": "Discover all services, versions and authoritative OpenAPI URLs."},
+    {"name": "describe_api_operation", "purpose": "List a contract's operations or describe one with exact input and response schemas."},
+    {"name": "call_api_operation", "purpose": "Execute any documented read-only operation, including text/checksum routes and search POST."}
   ]
 }

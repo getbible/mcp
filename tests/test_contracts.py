@@ -303,3 +303,207 @@ def test_unsupported_contract_changes_fail_explicitly(
         del document["paths"]["/v3"]["get"]["operationId"]
     with pytest.raises(ContractError):
         ContractRegistry({("search", "v3"): document})
+
+
+def _synthetic_contract(
+    schema: dict[str, Any], *, location: str = "query", explode: bool = True
+) -> dict[str, Any]:
+    """Represent a new operation without depending on today's endpoint inventory."""
+    path = "/v3/example/{value}" if location == "path" else "/v3/example"
+    return {
+        "openapi": "3.1.0",
+        "info": {"title": "Fixture", "version": "1"},
+        "paths": {
+            path: {
+                "get": {
+                    "operationId": "newOperation",
+                    "parameters": [
+                        {
+                            "name": "value",
+                            "in": location,
+                            "required": location == "path",
+                            "explode": explode,
+                            "schema": schema,
+                        }
+                    ],
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        },
+    }
+
+
+@pytest.mark.parametrize("explode", [True, False])
+def test_new_flat_object_query_parameters_serialize_as_standard_form(explode: bool) -> None:
+    schema = {
+        "type": "object",
+        "properties": {"role": {"type": "string"}, "active": {"type": "boolean"}},
+        "additionalProperties": False,
+    }
+    registry = ContractRegistry({("search", "v3"): _synthetic_contract(schema, explode=explode)})
+    prepared = registry.prepare(
+        "search", "v3", "newOperation", {"value": {"role": "reader", "active": False}}
+    )
+    assert prepared.params == (
+        [("role", "reader"), ("active", "false")]
+        if explode
+        else [("value", "role,reader,active,false")]
+    )
+
+
+@pytest.mark.parametrize("explode", [True, False])
+def test_new_flat_object_path_parameters_use_simple_serialization(explode: bool) -> None:
+    schema = {"type": "object", "additionalProperties": {"type": ["string", "integer"]}}
+    registry = ContractRegistry(
+        {("search", "v3"): _synthetic_contract(schema, location="path", explode=explode)}
+    )
+    prepared = registry.prepare(
+        "search", "v3", "newOperation", {"value": {"label": "faith & hope", "page": 2}}
+    )
+    assert prepared.path == (
+        "/v3/example/label=faith%20%26%20hope,page=2"
+        if explode
+        else "/v3/example/label,faith%20%26%20hope,page,2"
+    )
+
+
+@pytest.mark.parametrize("location", ["path", "query"])
+def test_refs_unions_and_split_allof_constraints_keep_scalar_arrays_supported(
+    location: str,
+) -> None:
+    document = _synthetic_contract(
+        {"$ref": "#/components/schemas/Values"}, location=location, explode=False
+    )
+    document["components"] = {
+        "schemas": {
+            "Values": {
+                "allOf": [
+                    {"type": "array"},
+                    {"items": {"anyOf": [{"type": "integer"}, {"type": "string"}]}},
+                ]
+            }
+        }
+    }
+    registry = ContractRegistry({("search", "v3"): document})
+    prepared = registry.prepare("search", "v3", "newOperation", {"value": [1, "John"]})
+    if location == "path":
+        assert prepared.path == "/v3/example/1,John"
+    else:
+        assert prepared.params == [("value", "1,John")]
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {},
+        {"type": ["string", "null"]},
+        {"type": "array"},
+        {"$id": "https://example.test/scoped", "type": "string"},
+        {"$dynamicRef": "#/components/schemas/Value", "type": "string"},
+        {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
+        {"type": "object", "properties": {"label": {"type": "string"}}},
+        {"type": "object", "additionalProperties": {"type": "object"}},
+        {
+            "type": "object",
+            "properties": {"nested": {"type": "array", "items": {"type": "string"}}},
+            "additionalProperties": False,
+        },
+        {"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "object"}}]},
+    ],
+)
+@pytest.mark.parametrize("location", ["path", "query"])
+def test_unsupported_optional_and_required_wire_shapes_fail_at_registry_construction(
+    schema: dict[str, Any], location: str
+) -> None:
+    # Query inputs are optional: discovery must reject unsupported declarations
+    # before any caller happens to provide their value.
+    with pytest.raises(ContractError, match="wire shape"):
+        ContractRegistry({("search", "v3"): _synthetic_contract(schema, location=location)})
+
+
+def test_reference_sibling_constraints_are_conjoined_for_wire_shape_proof() -> None:
+    document = _synthetic_contract({"$ref": "#/components/schemas/Map", "type": "object"})
+    document["components"] = {
+        "schemas": {
+            "Map": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            }
+        }
+    }
+    registry = ContractRegistry({("search", "v3"): document})
+    assert registry.prepare("search", "v3", "newOperation", {"value": {"word": "hope"}}).params == [
+        ("word", "hope")
+    ]
+    document["components"]["schemas"]["Map"]["additionalProperties"] = {"type": "array"}
+    with pytest.raises(ContractError, match="wire shape"):
+        ContractRegistry({("search", "v3"): document})
+
+
+def test_flat_query_object_keys_and_values_cannot_inject_query_parameters() -> None:
+    schema = {"type": "object", "additionalProperties": {"type": "string"}}
+    registry = ContractRegistry({("search", "v3"): _synthetic_contract(schema)})
+    prepared = registry.prepare(
+        "search", "v3", "newOperation", {"value": {"word&limit": "faith?limit=99#fragment"}}
+    )
+    url = httpx.URL("https://search.getbible.net" + prepared.path, params=prepared.params)
+    assert list(url.params.multi_items()) == [("word&limit", "faith?limit=99#fragment")]
+    assert not url.fragment
+
+
+@pytest.mark.parametrize("schema", [{}, {"type": "array"}, {"type": ["object", "null"]}])
+def test_non_object_request_body_roots_fail_before_publication(schema: dict[str, Any]) -> None:
+    document = _synthetic_contract({"type": "string"})
+    item = document["paths"]["/v3/example"]
+    item["post"] = item.pop("get")
+    item["post"]["requestBody"] = {"content": {"application/json": {"schema": schema}}}
+    with pytest.raises(ContractError, match="JSON request body"):
+        ContractRegistry({("search", "v3"): document})
+
+
+def test_object_request_bodies_keep_arbitrary_nested_json_supported() -> None:
+    document = _synthetic_contract({"type": "string"})
+    item = document["paths"]["/v3/example"]
+    item["post"] = item.pop("get")
+    item["post"]["requestBody"] = {
+        "content": {
+            "application/json": {
+                "schema": {
+                    "allOf": [{"type": "object"}, {"properties": {"nested": {"type": "array"}}}],
+                }
+            }
+        }
+    }
+    registry = ContractRegistry({("search", "v3"): document})
+    body = {"nested": [[None, {"key": True}]]}
+    assert registry.prepare("search", "v3", "newOperation", body=body).body == body
+
+
+@pytest.mark.parametrize("location", ["document", "operation"])
+def test_effective_authentication_requirements_fail_during_discovery(location: str) -> None:
+    document = _synthetic_contract({"type": "string"})
+    operation = document["paths"]["/v3/example"]["get"]
+    target = document if location == "document" else operation
+    target["security"] = [{"bearer": []}]
+    with pytest.raises(ContractError, match="Authenticated upstream"):
+        ContractRegistry({("search", "v3"): document})
+
+
+def test_public_security_override_and_empty_requirement_are_supported() -> None:
+    document = _synthetic_contract({"type": "string"})
+    document["security"] = [{"bearer": []}]
+    operation = document["paths"]["/v3/example"]["get"]
+    for public_security in ([], [{}]):
+        operation["security"] = public_security
+        registry = ContractRegistry({("search", "v3"): document})
+        assert registry.prepare("search", "v3", "newOperation").method == "GET"
+
+
+@pytest.mark.parametrize("location", ["path", "operation"])
+def test_per_operation_server_overrides_are_rejected(location: str) -> None:
+    document = _synthetic_contract({"type": "string"})
+    item = document["paths"]["/v3/example"]
+    target = item if location == "path" else item["get"]
+    target["servers"] = [{"url": "https://search.getbible.net/alternate"}]
+    with pytest.raises(ContractError, match="server overrides"):
+        ContractRegistry({("search", "v3"): document})

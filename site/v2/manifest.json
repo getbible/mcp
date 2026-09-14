@@ -1,18 +1,21 @@
 {
-  "name": "GetBible API V2",
+  "name": "GetBible MCP",
   "registry_name": "net.getbible/mcp",
-  "mcp_server_version": "1.0.0",
-  "api_version": "v2",
+  "mcp_server_version": "2.0.0",
   "status": "stable",
+  "endpoint_note": "The /mcp protocol endpoint is independent of upstream API versions; its host is supplied by the consuming application.",
   "transports": {
     "streamable_http": {
-      "url": "https://mcp.getbible.net/v2",
-      "public": true
+      "path": "/mcp",
+      "requires_consumer_url": true
     },
     "stdio": {
       "command": "getbible-mcp",
-      "args": ["--transport", "stdio"],
-      "installation": "https://mcp.getbible.net/v2/#local-installation"
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "installation": "#local-installation"
     }
   },
   "capabilities": {
@@ -20,25 +23,97 @@
     "resources": true,
     "prompts": true
   },
-  "tools": "https://mcp.getbible.net/v2/tool-catalog.json",
+  "tools": "tool-catalog.json",
   "resources": [
-    "getbible://docs/api-v2",
+    "getbible://docs/api",
     "getbible://docs/cache-policy",
-    "getbible://docs/usage-policy"
+    "getbible://docs/usage-policy",
+    "getbible://openapi/api/v2",
+    "getbible://openapi/api/v3",
+    "getbible://openapi/query/v2",
+    "getbible://openapi/query/v3",
+    "getbible://openapi/search/v2",
+    "getbible://openapi/search/v3",
+    "getbible://openapi/dictionaries/v1",
+    "getbible://openapi/commentaries/v1",
+    "getbible://openapi/bookmarks/v1"
   ],
-  "prompts": ["design_getbible_integration"],
+  "prompts": [
+    "design_getbible_integration"
+  ],
+  "apis": [
+    {
+      "service": "api",
+      "api_version": "v2",
+      "openapi": "https://api.getbible.net/v2/openapi.json",
+      "snapshot": "../contracts/api-v2.json"
+    },
+    {
+      "service": "api",
+      "api_version": "v3",
+      "openapi": "https://api.getbible.net/v3/openapi.json",
+      "snapshot": "../contracts/api-v3.json"
+    },
+    {
+      "service": "query",
+      "api_version": "v2",
+      "openapi": "https://query.getbible.net/v2/openapi.json",
+      "snapshot": "../contracts/query-v2.json"
+    },
+    {
+      "service": "query",
+      "api_version": "v3",
+      "openapi": "https://query.getbible.net/v3/openapi.json",
+      "snapshot": "../contracts/query-v3.json"
+    },
+    {
+      "service": "search",
+      "api_version": "v2",
+      "openapi": "https://search.getbible.net/v2/openapi.json",
+      "snapshot": "../contracts/search-v2.json"
+    },
+    {
+      "service": "search",
+      "api_version": "v3",
+      "openapi": "https://search.getbible.net/v3/openapi.json",
+      "snapshot": "../contracts/search-v3.json"
+    },
+    {
+      "service": "dictionaries",
+      "api_version": "v1",
+      "openapi": "https://dictionaries.getbible.net/v1/openapi.json",
+      "snapshot": "../contracts/dictionaries-v1.json"
+    },
+    {
+      "service": "commentaries",
+      "api_version": "v1",
+      "openapi": "https://commentaries.getbible.net/v1/openapi.json",
+      "snapshot": "../contracts/commentaries-v1.json"
+    },
+    {
+      "service": "bookmarks",
+      "api_version": "v1",
+      "openapi": "https://bookmarks.getbible.net/v1/openapi.json",
+      "snapshot": "../contracts/bookmarks-v1.json"
+    }
+  ],
   "documentation": {
-    "ai": "https://mcp.getbible.net/v2/llms.txt",
-    "api": "https://mcp.getbible.net/v2/api.md",
-    "usage_policy": "https://mcp.getbible.net/v2/usage-policy.md",
-    "cache_policy": "https://mcp.getbible.net/v2/cache-policy.md",
-    "examples": "https://mcp.getbible.net/v2/examples.md",
-    "openapi": "https://mcp.getbible.net/v2/openapi.json"
+    "ai": "llms.txt",
+    "api": "api.md",
+    "usage_policy": "usage-policy.md",
+    "cache_policy": "cache-policy.md",
+    "examples": "examples.md"
+  },
+  "cache": {
+    "maximum_retention_seconds": 2592000,
+    "honor_shorter_http_freshness": true,
+    "query_search_mcp_cache": false
   },
   "access": {
     "public": true,
     "authentication": false,
     "api_key": false,
     "request_quota": false
-  }
+  },
+  "documentation_version": "2.0"
 }

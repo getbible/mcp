@@ -1,57 +1,30 @@
-# Security policy and threat model
+# Security policy
 
-## Supported release
+Security fixes target the supported package release. Report vulnerabilities privately through
+[GitHub security advisories](https://github.com/getbible/mcp/security/advisories/new).
 
-Security fixes are applied to the current production release. Dependency upgrades must preserve both
-transports and pass the complete test suite before deployment.
+## Package boundaries
 
-## Reporting
+The package exposes reviewed read-only GetBible operations. Search POST performs retrieval, not a
+write. There are no shell, filesystem, arbitrary-URL, personal-account or database tools. Publisher
+content is returned as data and must not be interpreted as instructions.
 
-Report suspected vulnerabilities privately through the GetBible support process rather than opening
-a public issue containing exploit details:
+Implemented controls include:
 
-https://github.com/getbible/mcp/security/advisories/new
+- Schema validation against bundled OpenAPI contracts, including version-specific bounds.
+- Operator-configured service destinations; tool callers cannot supply a host or HTTP method.
+- Encoded path segments, explicit supported methods and no automatic redirect following.
+- Bounded response sizes, request timeouts and parallel hash checks.
+- MCP Host/Origin validation, read-only annotations and stateless HTTP support.
+- No stored API responses or persisted credentials.
+- Before/after Bible version checks and conservative HTTP cache advice with a 30-day ceiling.
 
-## Public-service model
+Configuration and custom HTTP clients are trusted application inputs. Embedding applications own
+their network boundary, authentication policy and resource lifecycle. Keep origin validation enabled
+and do not expose private service destinations through a public MCP application without an explicit
+access policy. Returned upstream documents and Location headers remain untrusted data.
 
-GetBible MCP exposes only public, read-only scripture data. It has no write tools, user accounts,
-database, filesystem tool, shell tool, secret-bearing responses, or arbitrary URL fetcher. Anonymous
-remote access is therefore intentional.
+## Dependencies
 
-If future tools access private data, accept writes, or act for a user, implement the MCP authorization
-specification before publishing those tools. A shared static bearer token is not a substitute for a
-proper authorization design.
-
-## Implemented controls
-
-- Fixed allowlisted upstream API bases
-- Strict translation-character and numeric-bound validation
-- No arbitrary URL tool input
-- Redirect rejection
-- Upstream timeouts and response-size limits
-- Bounded parallel hash checks
-- DNS-rebinding Host and Origin validation in the MCP SDK
-- Loopback-only application listener
-- Nginx TLS boundary and MCP request-body safety limit
-- Non-root service account and hardened systemd sandbox
-- Read-only, non-destructive MCP tool annotations
-- Locked production dependency versions
-- Stateless application with no persisted credentials
-- Before/after hash checks to avoid mismatched scripture and version tokens
-
-## Nginx and proxies
-
-Preserve the original `Host` and scheme headers exactly as provided in the deployment configuration.
-Do not disable Origin validation to solve a client configuration error. Add a verified required origin
-to `/etc/getbible-mcp.env`, restart the service, and test it deliberately.
-
-The supplied Nginx configuration does not impose per-address throttling. GetBible API V2 and this
-public MCP service require no account, API key, or usage quota. If operational abuse controls become
-necessary later, base them on observed traffic and document them without presenting them as API
-licensing conditions.
-
-## Dependency maintenance
-
-The Python MCP SDK is pinned below its next major version. Review upstream security notices, create a
-test branch for dependency updates, regenerate the lock, and run linting, typing, unit tests, both
-protocol transports, package builds, and a staging deployment before production.
+Production dependencies are pinned. Review updates in branches and run schema, client, lifecycle,
+stdio, Streamable HTTP, type and package checks before releasing a new package.

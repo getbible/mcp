@@ -1,55 +1,134 @@
 name: publish-pypi
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
-        description: Version tag matching the package metadata
-        required: true
-        default: v1.0.0
+        description: Optional tag matching the current package version; empty derives it automatically
+        required: false
+        default: ""
         type: string
 
 permissions:
   contents: read
 
-jobs:
-  validate:
-    uses: ./.github/workflows/test.yml
+concurrency:
+  group: publish-pypi
+  cancel-in-progress: false
 
-  release-check:
-    name: Verify release version
-    needs: validate
+jobs:
+  prepare:
+    name: Determine whether this package version needs publication
+    if: github.repository == 'getbible/mcp' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      needed: ${{ steps.release.outputs.needed }}
+      publish: ${{ steps.release.outputs.publish }}
+      create_tag: ${{ steps.release.outputs.create_tag }}
+      create_release: ${{ steps.release.outputs.create_release }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      ref: ${{ steps.release.outputs.ref }}
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - name: Verify release tag and project versions
+      - name: Inspect immutable tag, PyPI version and GitHub release
+        id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          python scripts/release_state.py --tag "$REQUESTED_TAG" \
+            --commit "$GITHUB_SHA" --repository "$GITHUB_REPOSITORY" --output "$GITHUB_OUTPUT"
+
+  validate:
+    needs: prepare
+    if: needs.prepare.outputs.needed == 'true'
+    uses: ./.github/workflows/test.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
+  release-check:
+    name: Verify the exact release revision
+    needs: [prepare, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Verify release tag and every package declaration
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: python scripts/verify_release.py "$RELEASE_TAG"
 
   publish:
-    name: Publish getbible-mcp to PyPI
-    needs: [validate, release-check]
+    name: Publish the verified package and release
+    needs: [prepare, validate, release-check]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment:
       name: pypi
       url: https://pypi.org/project/getbible-mcp/
     steps:
-      - name: Download verified distributions
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download the exact verified distributions
         uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: dist/
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Verify existing PyPI files before recording or resuming this release
+        env:
+          PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python scripts/verify_pypi_artifacts.py "$PACKAGE_VERSION" dist/
+      - name: Record the immutable validated tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_REF: ${{ needs.prepare.outputs.ref }}
+        run: |
+          set -Eeuo pipefail
+          gh auth setup-git
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$RELEASE_REF"
+          else
+            git tag "$RELEASE_TAG" "$RELEASE_REF"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
       - name: Publish with the protected PyPI API token
+        if: needs.prepare.outputs.publish == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_MCP_TOKEN }}
+          skip-existing: true
           print-hash: true
+      - name: Recheck published file identities before creating the release
+        env:
+          PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python scripts/verify_pypi_artifacts.py "$PACKAGE_VERSION" dist/ --require-complete
+      - name: Create the GitHub release after package publication
+        if: needs.prepare.outputs.create_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes

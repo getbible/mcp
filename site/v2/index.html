@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GetBible MCP V2</title>
-  <meta name="description" content="Documentation for GetBible API V2 over Model Context Protocol.">
+  <title>GetBible MCP 2.0 documentation</title>
+  <meta name="description" content="All nine GetBible API contracts through MCP: scripture, query, search, dictionaries, commentaries and bookmarks.">
   <style>
     :root { color-scheme: light dark; --accent: #b9933f; --page: #10141a; --card: #1b222c; --text: #f3f5f7; --muted: #b9c2cc; }
     * { box-sizing: border-box; }
@@ -25,11 +25,12 @@
 <body>
   <main>
     <header>
-      <p><a href="/">GetBible MCP</a> / V2</p>
-      <h1>GetBible MCP V2</h1>
-      <p>One tool contract, available remotely through Streamable HTTP and locally through stdio.</p>
-      <p>Public access with no account, API key, authentication, subscription, or request quota.</p>
-      <p><strong>Remote endpoint:</strong> <code>https://mcp.getbible.net/v2</code></p>
+      <p><a href="../">GetBible MCP</a> / Package 2.0 documentation</p>
+      <h1>One connection. All GetBible APIs.</h1>
+      <p>Scripture, query and search v2/v3; dictionaries, commentaries and public topic bookmarks v1. Available through hosted Streamable HTTP and local stdio.</p>
+      <p>Public access requires no account or API key. Every operation is read-only, including search POST.</p>
+      <p><strong>Protocol endpoint:</strong> <code>/mcp</code>, at the URL supplied by the consuming application.</p>
+      <p>Scripture tools default to upstream v3, with v2 available explicitly. This documentation covers MCP package 2.0 and every listed upstream API version.</p>
       <p><strong>Local command:</strong> <code>getbible-mcp --transport stdio</code></p>
     </header>
     <section>
@@ -37,18 +38,24 @@
       <div class="grid">
         <a href="llms.txt"><strong>llms.txt</strong><br>Compact entry point for AI systems.</a>
         <a href="manifest.json"><strong>manifest.json</strong><br>Transports, tools, resources, and canonical URLs.</a>
-        <a href="api.md"><strong>API guide</strong><br>Main API, Query API, mappings, and hashes.</a>
+        <a href="api.md"><strong>API guide</strong><br>All services, versions, data structures and integration patterns.</a>
         <a href="usage-policy.md"><strong>Public use policy</strong><br>Open access, translation rights, and synchronization agreement.</a>
         <a href="cache-policy.md"><strong>Cache policy</strong><br>Mandatory revalidation and invalidation rules.</a>
         <a href="examples.md"><strong>Examples</strong><br>Representative tool selections and calls.</a>
-        <a href="openapi.json"><strong>OpenAPI</strong><br>Machine-readable native HTTP API description.</a>
+        <a href="manifest.json"><strong>OpenAPI catalog</strong><br>All nine upstream documents and exact included snapshots.</a>
         <a href="tool-catalog.json"><strong>Tool catalog</strong><br>Static overview of the live MCP tools.</a>
       </div>
     </section>
+    <section id="local-installation">
+      <h2>Choose a connection</h2>
+      <p>Connect a Python, JavaScript or PHP MCP client to an application's published MCP URL using Streamable HTTP. An ordinary application can also call the existing REST APIs directly.</p>
+      <p>To run the MCP server locally, install the Python package with <code>pipx install getbible-mcp</code> and configure your AI client to launch <code>getbible-mcp --transport stdio</code>.</p>
+      <p>This project ships one Python server package. It does not require separate npm or Composer server implementations.</p>
+    </section>
     <section class="warning">
       <h2>Required cache integrity</h2>
-      <p>Store every cached scripture payload with the hash for its exact scope. Revalidate at least weekly. When a hash changes, invalidate that scope and every cached descendant, then atomically replace the stale content.</p>
-      <p>This synchronization cycle is a condition of the GetBible API usage agreement. Preserve the copyright metadata returned for each translation.</p>
+      <p>Never retain upstream data beyond 30 days without refreshing it. Honor shorter HTTP freshness and no-store; validate published checksums and replace changed records atomically. The MCP keeps no persistent result cache, and query/search results are non-cacheable by default.</p>
+      <p>Preserve rights and provenance from translation catalogs and study-module metadata. Read the full cache and usage policies before building an offline integration.</p>
     </section>
   </main>
 </body>

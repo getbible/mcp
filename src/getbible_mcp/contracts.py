@@ -20,6 +20,8 @@ from urllib.parse import quote, urljoin, urlsplit
 
 from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 
+from getbible_mcp.contract_shapes import validate_body_schema, validate_parameter_schema
+
 CONTRACT_URLS = {
     (service, version): f"https://{host}.getbible.net/{version}/openapi.json"
     for service, host, versions in (
@@ -132,7 +134,18 @@ def _scalar(value: Any) -> str:
     raise ContractError("URL parameter values must be finite numbers, strings or booleans")
 
 
-def _path_value(value: Any, name: str) -> str:
+def _path_value(value: Any, name: str, *, explode: bool = False) -> str:
+    if isinstance(value, list):
+        if not value:
+            raise ContractError(f"Path parameter {name!r} must not serialize to an empty segment")
+        return ",".join(_path_value(item, name) for item in value)
+    if isinstance(value, dict):
+        if not value:
+            raise ContractError(f"Path parameter {name!r} must not serialize to an empty segment")
+        pairs = [(_path_value(key, name), _path_value(item, name)) for key, item in value.items()]
+        if explode:
+            return ",".join(f"{key}={item}" for key, item in pairs)
+        return ",".join(part for pair in pairs for part in pair)
     text = _scalar(value)
     if (
         not text
@@ -147,6 +160,11 @@ def _path_value(value: Any, name: str) -> str:
 
 def _query_values(parameter: dict[str, Any], value: Any) -> list[tuple[str, str]]:
     name = parameter["name"]
+    if isinstance(value, dict):
+        pairs = [(key, _scalar(item)) for key, item in value.items()]
+        if parameter.get("explode", True):
+            return pairs
+        return [(name, ",".join(part for pair in pairs for part in pair))]
     if isinstance(value, list):
         values = [_scalar(item) for item in value]
         if parameter.get("explode", True):
@@ -185,6 +203,16 @@ class ContractRegistry:
                     if method != "get" and not (key[0] == "search" and method == "post"):
                         raise ContractError(f"Unsupported non-read-only operation: {method} {path}")
                     operation = _resolve(document, raw_operation)
+                    security = operation.get("security", document.get("security", []))
+                    if not isinstance(security, list) or any(
+                        not isinstance(requirement, dict) for requirement in security
+                    ):
+                        raise ContractError("Operation security must be an array of requirements")
+                    if any(security):
+                        raise ContractError(
+                            "Authenticated upstream operations are not supported; "
+                            "an operation must explicitly permit public access"
+                        )
                     operation_id = operation.get("operationId")
                     if not isinstance(operation_id, str) or not operation_id:
                         raise ContractError(f"Missing operationId: {method} {path}")
@@ -221,6 +249,10 @@ class ContractRegistry:
                 raise ContractError(f"Unsupported parameter serialization style for {name}")
             if parameter.get("allowReserved", False):
                 raise ContractError(f"Unsafe reserved query parameter serialization for {name}")
+            try:
+                validate_parameter_schema(document, parameter["schema"])
+            except ValueError as exc:
+                raise ContractError(f"Unsupported wire shape for parameter {name}: {exc}") from exc
             merged[(location, name)] = parameter
 
         parameters: dict[str, dict[str, Any]] = {}
@@ -273,6 +305,10 @@ class ContractRegistry:
             body_schema = content["application/json"].get("schema")
             if not isinstance(body_schema, dict):
                 raise ContractError("A JSON request body must define a schema")
+            try:
+                validate_body_schema(document, body_schema)
+            except ValueError as exc:
+                raise ContractError(f"Unsupported JSON request body: {exc}") from exc
             input_schema["properties"]["body"] = deepcopy(body_schema)
             if request_body.get("required", False):
                 input_required.append("body")
@@ -398,7 +434,9 @@ class ContractRegistry:
         for input_name, value in supplied["parameters"].items():
             parameter = operation.parameters[input_name]
             if parameter["in"] == "path":
-                path_values[parameter["name"]] = _path_value(value, input_name)
+                path_values[parameter["name"]] = _path_value(
+                    value, input_name, explode=parameter.get("explode", False)
+                )
             else:
                 query.extend(_query_values(parameter, value))
         path = _PATH_PARAMETER.sub(lambda match: path_values[match.group(1)], operation.path)
