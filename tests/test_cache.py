@@ -13,7 +13,11 @@ NOW = datetime(2026, 9, 14, 12, 0, tzinfo=UTC)
 
 def source(**headers: str) -> SourceInfo:
     return SourceInfo(
-        url="https://api.test/v3/kjv/1/1.json", fetched_at=NOW, api_version="v3", headers=headers
+        url="https://api.test/v3/kjv/1/1.json",
+        fetched_at=NOW,
+        api_version="v3",
+        service="api",
+        headers=headers,
     )
 
 

@@ -4,8 +4,8 @@ SERVER_INSTRUCTIONS = """GetBible is a read-only platform covering Bible, refere
 plus dictionaries, commentaries, and bookmarks v1. Use discover_apis to select a service/version,
 describe_api_operation to inspect exact parameters and response schemas, then call_api_operation to
 execute any documented operation. Full OpenAPI documents are available as getbible://openapi/{service}/{version}.
-Common scripture tools keep v2 as their compatibility default; choose api_version='v3' explicitly for
-v3. The MCP transport URL /v2 is retained for existing clients and does not restrict upstream versions.
+Common scripture tools default to v3; select api_version='v2' for v2 data. The single /mcp transport
+endpoint exposes every service and version. GetBible MCP 2.0 is a new package interface.
 
 Use query_verses for references; get_scripture for complete chapters/books/translations; search_verses
 for text searches. Discover identifiers from catalogs. Omitted translation defaults to kjv. Invalid
@@ -87,8 +87,8 @@ names/aliases as IDs; retrieve text through Bible/query. Locale names may need a
 fallback. An empty valid chapter can be a successful result; counts.verses counts associations.
 
 See getbible://docs/cache-policy for HTTP freshness, the 30-day maximum and service-specific hashes.
-See getbible://docs/usage-policy for publisher metadata. The remote MCP endpoint remains /v2 for
-compatibility; every upstream version is also available through local stdio.
+See getbible://docs/usage-policy for publisher metadata. The /mcp transport endpoint and local stdio
+both expose every upstream version.
 """
 
 USAGE_GUIDE = """# Public API usage
