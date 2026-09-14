@@ -254,7 +254,19 @@ class Probe:
             {(item["service"], item["version"]) for item in catalog.get("apis", [])} == CONTRACTS,
             "API catalog does not cover the nine supported contracts",
         )
-        self.passed(f"MCP discovery, {len(names)} documented tools, documentation and nine contracts")
+        prompts = await self.request("prompt discovery", client.list_prompts())
+        integration = next((prompt for prompt in prompts.prompts if prompt.name == "design_getbible_integration"), None)
+        require(integration is not None and integration.description, "Integration prompt is missing or undocumented")
+        arguments = {argument.name: argument for argument in integration.arguments or []}
+        require("application" in arguments and arguments["application"].required is True, "Integration prompt does not document its required application argument")
+        prompt = await self.request("integration prompt", client.get_prompt(
+            "design_getbible_integration", {"application": "A read-only Bible study application."},
+        ))
+        require(prompt.messages and all(
+            message.content.type == "text" and message.content.text.strip()
+            for message in prompt.messages
+        ), "Integration prompt returned no readable instructions")
+        self.passed(f"MCP discovery, {len(names)} documented tools, documentation, nine contracts and integration prompt")
 
     def validate_native(self, service: str, version: str, operation: str, data: Any) -> None:
         document = self.documents[service, version]

@@ -111,8 +111,16 @@ def test_catalog_selection_uses_published_ids_and_smallest_populated_dataset(che
 async def test_probe_discovers_actual_sdk_server_without_upstream_network(checker: ModuleType) -> None:
     reports: list[str] = []
     probe = checker.Probe(report=reports.append)
-    async with http_session(path="/") as (client, _):
+    methods: list[str] = []
+
+    async def record_method(request: httpx2.Request) -> None:
+        methods.append(request.headers.get("MCP-Method", ""))
+
+    async with http_session(path="/") as (client, http):
+        http.event_hooks["request"].append(record_method)
         await probe.discovery(client, __version__)
+    assert "prompts/list" in methods and "prompts/get" in methods
+    assert "integration prompt" in reports[0]
     assert set(probe.documents) == checker.CONTRACTS
     assert len(reports) == 1 and reports[0].startswith("PASS MCP discovery")
     probe.validate_native("bookmarks", "v1", "getTopics", {"schema_version": 1, "topics": []})
