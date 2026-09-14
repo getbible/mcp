@@ -30,14 +30,16 @@
       <div class="eyebrow">GetBible · Model Context Protocol</div>
       <h1>Scripture access built for AI.</h1>
       <p class="lead">Read scripture, resolve references, search verses and explore dictionaries, commentaries and topic bookmarks. GetBible MCP 2.0 covers all nine API contracts through one Python package and a shared MCP interface.</p>
-      <p>Scripture, query and search support v2 and v3. Dictionaries, commentaries and bookmarks support v1. Public access requires no account or API key.</p>
+      <p>Scripture, query and search support v2 and v3. Dictionaries, commentaries and bookmarks support v1. Public access is free, with no account or token required by default.</p>
       <div class="actions">
-        <a class="button primary" href="/v2/">Read the documentation</a>
-        <a class="button" href="/v2/llms.txt">AI documentation</a>
-        <a class="button" href="/v2/manifest.json">Machine manifest</a>
+        <a class="button primary" href="v2/">Read the documentation</a>
+        <a class="button" href="v2/llms.txt">AI documentation</a>
+        <a class="button" href="v2/manifest.json">Machine manifest</a>
       </div>
       <h2>Remote connection</h2>
-      <p>Configure an MCP client with the exact Streamable HTTP endpoint URL supplied by its host, at <code>/</code> or another supported path.</p>
+      <p><strong>Official public MCP endpoint:</strong> <a href="https://mcp.getbible.net/"><code>https://mcp.getbible.net/</code></a></p>
+      <p>Select Streamable HTTP in your MCP client and enter that URL exactly. The root <code>/</code> is the protocol endpoint; do not append <code>/mcp</code> or an API version. Clients connecting to another GetBible MCP host use that host's complete endpoint URL.</p>
+      <p>Anonymous requests use the same limits as the public search service. Honor HTTP 429 and <code>Retry-After</code>. Contact GetBible administrators for an optional token for MCP or another endpoint; see the <a href="v2/usage-policy.md">access and rate-limit policy</a>.</p>
       <p>Scripture tools default to upstream v3. Select v2 explicitly when needed; dictionary, commentary and bookmark operations use v1.</p>
       <h2>Local connection</h2>
       <p>Install the GetBible MCP package and configure the client to launch:</p>
@@ -46,7 +48,7 @@
       <p>Discover available APIs, inspect an operation's complete contract, then call it. Familiar scripture tools remain available, and v3 results retain lexical tokens, spans and paragraph markers.</p>
       <h2>Content freshness</h2>
       <p>The MCP does not persist upstream results. Downstream caches must honor the 30-day maximum, shorter HTTP freshness and published checksums. Query and search are non-cacheable by default.</p>
-      <p>Preserve translation and study-module rights from their catalogs and metadata. See the <a href="/v2/cache-policy.md">cache policy</a> and <a href="/v2/usage-policy.md">usage policy</a>.</p>
+      <p>Preserve translation and study-module rights from their catalogs and metadata. See the <a href="v2/cache-policy.md">cache policy</a> and <a href="v2/usage-policy.md">usage policy</a>.</p>
       <footer>GetBible · <a href="https://getbible.life">getbible.life</a></footer>
     </article>
   </main>

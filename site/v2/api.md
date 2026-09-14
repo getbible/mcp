@@ -2,10 +2,16 @@
 
 GetBible MCP exposes scripture, reference lookup and full-text search in v2 and v3, plus dictionaries,
 commentaries and public topic bookmarks in v1. Both stdio and Streamable HTTP expose the same tools,
-resources and integration prompt. Use the exact MCP endpoint URL supplied by the hosting application;
-its path may be `/` or a named path such as `/mcp`. Select the upstream version with `api_version`,
-independently of that path. This is the MCP package 2.0 guide, independent of upstream API version
-numbering.
+resources and integration prompt. The official public Streamable HTTP endpoint is
+[`https://mcp.getbible.net/`](https://mcp.getbible.net/). Use this exact root URL, without appending
+`/mcp` or an API version. Another GetBible MCP host may supply its own complete endpoint URL.
+Select the upstream version with `api_version`. This is the MCP package 2.0 guide, independent of
+upstream API version numbering.
+
+Access is free, with no account or token required by default. Anonymous MCP requests have the same
+limits as public search. Honor HTTP 429 and `Retry-After`; use backoff for retries. Contact GetBible
+administrators for an optional token for MCP or any API endpoint, and send an issued token securely
+through your client's `Authorization: Bearer` header. See the [usage policy](usage-policy.md).
 
 ## Discover before calling
 

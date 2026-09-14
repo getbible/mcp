@@ -8,9 +8,8 @@
   "manifest": "v2/manifest.json",
   "transports": {
     "streamable_http": {
-      "default_path": "/mcp",
-      "host_selects_path": true,
-      "requires_consumer_url": true
+      "url": "https://mcp.getbible.net/",
+      "custom_endpoints_supported": true
     },
     "stdio": {
       "command": "getbible-mcp",
@@ -43,5 +42,6 @@
       "v1"
     ]
   },
-  "default_scripture_version": "v3"
+  "default_scripture_version": "v3",
+  "usage_policy": "v2/usage-policy.md"
 }

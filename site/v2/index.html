@@ -28,8 +28,8 @@
       <p><a href="../">GetBible MCP</a> / Package 2.0 documentation</p>
       <h1>One connection. All GetBible APIs.</h1>
       <p>Scripture, query and search v2/v3; dictionaries, commentaries and public topic bookmarks v1. Available through hosted Streamable HTTP and local stdio.</p>
-      <p>Public access requires no account or API key. Every operation is read-only, including search POST.</p>
-      <p><strong>Protocol endpoint:</strong> the exact URL supplied by the host, whose path may be <code>/</code>, <code>/mcp</code>, or another supported path.</p>
+      <p>Public access is free, with no account or token required by default. Every operation is read-only, including search POST. Anonymous access is subject to the <a href="usage-policy.md">published rate limits</a>.</p>
+      <p><strong>Official public MCP endpoint:</strong> <a href="https://mcp.getbible.net/"><code>https://mcp.getbible.net/</code></a>. Use Streamable HTTP at this exact root URL.</p>
       <p>Scripture tools default to upstream v3, with v2 available explicitly. This documentation covers MCP package 2.0 and every listed upstream API version.</p>
       <p><strong>Local command:</strong> <code>getbible-mcp --transport stdio</code></p>
     </header>
@@ -48,7 +48,8 @@
     </section>
     <section id="local-installation">
       <h2>Choose a connection</h2>
-      <p>Connect a Python, JavaScript or PHP MCP client to an application's published MCP URL using Streamable HTTP. An ordinary application can also call the existing REST APIs directly.</p>
+      <p>Connect a Python, JavaScript or PHP MCP client to <code>https://mcp.getbible.net/</code> using Streamable HTTP. Do not append <code>/mcp</code> or an upstream API version. To connect to another GetBible MCP host, use its complete endpoint URL. An ordinary application can also call the existing REST APIs directly.</p>
+      <p>Honor HTTP 429 and <code>Retry-After</code>. For an optional MCP or API token, contact GetBible administrators and configure the issued token securely in your client's <code>Authorization: Bearer</code> header. See the <a href="usage-policy.md">usage policy</a> for details.</p>
       <p>To run the MCP server locally, install the Python package with <code>pipx install getbible-mcp</code> and configure your AI client to launch <code>getbible-mcp --transport stdio</code>.</p>
       <p>This project ships one Python server package. It does not require separate npm or Composer server implementations.</p>
     </section>
