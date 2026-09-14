@@ -14,7 +14,7 @@ from getbible_mcp import __version__
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="getbible-mcp",
-        description="GetBible API V2 Model Context Protocol server",
+        description="GetBible multi-version Model Context Protocol server",
     )
     parser.add_argument(
         "--transport",
