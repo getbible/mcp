@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "getbible-mcp"
-version = "1.0.0"
-description = "GetBible API V2 server for the Model Context Protocol"
+version = "2.0.0"
+description = "Complete versioned GetBible API server for the Model Context Protocol"
 readme = "README.md"
 license = "GPL-2.0-or-later"
 license-files = ["LICENSE"]
@@ -26,6 +26,8 @@ classifiers = [
 ]
 dependencies = [
   "mcp==1.28.1",
+  "httpx==0.28.1",
+  "jsonschema==4.26.0",
 ]
 
 [project.optional-dependencies]

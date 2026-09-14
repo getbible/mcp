@@ -9,6 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 ScopeKind = Literal["translation", "book", "chapter"]
 ManifestKind = Literal["all_translations", "translation", "book"]
+BibleVersion = Literal["v2", "v3"]
+ApiVersion = Literal["v1", "v2", "v3"]
+ServiceName = Literal["api", "query", "search", "dictionaries", "commentaries", "bookmarks"]
 
 
 class StrictModel(BaseModel):
@@ -18,11 +21,14 @@ class StrictModel(BaseModel):
 class ScopeSpec(StrictModel):
     kind: ScopeKind
     translation: str = Field(min_length=1, max_length=64)
-    book: int | None = Field(default=None, ge=1, le=200)
-    chapter: int | None = Field(default=None, ge=1, le=300)
+    api_version: BibleVersion = "v2"
+    book: int | None = Field(default=None, ge=1, le=281474977710655)
+    chapter: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def validate_scope(self) -> ScopeSpec:
+        if self.api_version == "v2" and self.book is not None and self.book > 89:
+            raise ValueError("V2 book numbers must be between 1 and 89")
         if self.kind == "translation" and (self.book is not None or self.chapter is not None):
             raise ValueError("translation scope must not include book or chapter")
         if self.kind == "book" and (self.book is None or self.chapter is not None):
@@ -44,20 +50,49 @@ class HashWatch(ScopeSpec):
 class SourceInfo(StrictModel):
     url: str
     fetched_at: datetime
-    api_version: Literal["v2"] = "v2"
+    api_version: ApiVersion = "v2"
+    service: ServiceName = "api"
+    status_code: int = Field(default=200, ge=100, le=599)
+    headers: dict[str, str] = Field(default_factory=dict)
+
+
+class CacheAdvice(StrictModel):
+    """Consumer guidance only: this MCP never stores upstream responses."""
+
+    cacheable: bool
+    recommended: bool
+    max_retention_seconds: int = 30 * 24 * 60 * 60
+    remaining_ttl_seconds: int = Field(ge=0)
+    expires_at: datetime
+    hash_validation_required: bool
+    policy: str
+
+
+class ApiResult(StrictModel):
+    """Native upstream data with provenance and a separate cache contract."""
+
+    operation_id: str
+    data: Any
+    source: SourceInfo
+    cache: CacheAdvice
 
 
 class MappingResult(StrictModel):
     data: Any
     source: SourceInfo
     hash_guidance: str
+    cache: CacheAdvice | None = None
 
 
 class HashResult(StrictModel):
     scope: ScopeSpec
     hash: str
     source: SourceInfo
-    meaning: str = "Opaque content-version token; a change means cached content is stale."
+    cache: CacheAdvice | None = None
+    meaning: str = (
+        "Published SHA-1 checksum and version token; a change means cached content is stale. "
+        "Reading the token does not itself verify downloaded scripture bytes."
+    )
 
 
 class ScriptureResult(StrictModel):
@@ -69,12 +104,13 @@ class ScriptureResult(StrictModel):
     consistency_checked: bool
     consistency_retries: int
     cache_policy: str
+    cache: CacheAdvice | None = None
 
 
 class ChapterHash(StrictModel):
     translation: str
-    book: int = Field(ge=1, le=200)
-    chapter: int = Field(ge=1, le=300)
+    book: int = Field(ge=1, le=281474977710655)
+    chapter: int = Field(ge=1)
     hash: str
     source_url: str
 
@@ -84,12 +120,13 @@ class QueryResult(StrictModel):
     references: str
     data: Any
     source: SourceInfo
-    chapter_hashes: list[ChapterHash]
-    unresolved_references: list[str]
-    cacheable: bool
-    consistency_checked: bool
-    consistency_retries: int
+    chapter_hashes: list[ChapterHash] = Field(default_factory=list)
+    unresolved_references: list[str] = Field(default_factory=list)
+    cacheable: bool = False
+    consistency_checked: bool = False
+    consistency_retries: int = 0
     cache_policy: str
+    cache: CacheAdvice | None = None
 
 
 class ManifestResult(StrictModel):
@@ -99,6 +136,7 @@ class ManifestResult(StrictModel):
     data: Any
     source: SourceInfo
     cache_policy: str
+    cache: CacheAdvice | None = None
 
 
 class UpdateItem(StrictModel):

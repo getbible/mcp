@@ -1,19 +1,23 @@
-"""Safe asynchronous client for the static GetBible API V2 endpoints."""
+"""Bounded asynchronous access to the read-only GetBible API contracts."""
 
 from __future__ import annotations
 
 import asyncio
 import json
+import math
 import re
 from datetime import UTC, datetime
-from typing import Any
-from urllib.parse import quote
+from typing import Any, NoReturn, cast
 
 import httpx
 
+from getbible_mcp.cache import RUNTIME_CACHE_POLICY, STATIC_CACHE_POLICY, cache_advice
 from getbible_mcp.config import Settings
+from getbible_mcp.contracts import ContractError, ContractRegistry
 from getbible_mcp.models import (
-    ChapterHash,
+    ApiResult,
+    ApiVersion,
+    BibleVersion,
     HashResult,
     ManifestKind,
     ManifestResult,
@@ -21,18 +25,24 @@ from getbible_mcp.models import (
     QueryResult,
     ScopeSpec,
     ScriptureResult,
+    ServiceName,
     SourceInfo,
 )
 
 TRANSLATION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
-REFERENCE_RE = re.compile(r"^(.*\D)(\d+)\s*$")
-
-CACHE_POLICY = (
-    "Store the returned hash with cached scripture. Revalidate it at least weekly using the "
-    "matching .sha endpoint or checksum manifest. If it changes, invalidate that scope and all "
-    "cached descendants, then atomically fetch and store fresh scripture with the new hash. "
-    "This synchronization cycle is a condition of the GetBible API usage agreement."
+CACHE_POLICY = STATIC_CACHE_POLICY
+SAFE_RESPONSE_HEADERS = (
+    "content-type",
+    "cache-control",
+    "date",
+    "age",
+    "expires",
+    "etag",
+    "last-modified",
+    "retry-after",
+    "location",
+    "vary",
 )
 
 
@@ -41,11 +51,24 @@ class GetBibleError(RuntimeError):
 
 
 class InvalidRequestError(GetBibleError):
-    """The requested GetBible identifier or scope is invalid."""
+    """The requested GetBible operation, identifier or scope is invalid."""
 
 
 class UpstreamError(GetBibleError):
-    """The GetBible upstream returned an unsuccessful or malformed response."""
+    """An unsuccessful or malformed response with available native error details."""
+
+    def __init__(self, message: str, result: ApiResult | None = None) -> None:
+        super().__init__(message)
+        self.result = result
+        self.status_code = result.source.status_code if result else None
+        self.body = result.data if result else None
+        self.source = result.source if result else None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "error": str(self),
+            "result": self.result.model_dump(mode="json") if self.result else None,
+        }
 
 
 class ContentChangedDuringReadError(GetBibleError):
@@ -54,6 +77,17 @@ class ContentChangedDuringReadError(GetBibleError):
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _invalid_json_constant(value: str) -> NoReturn:
+    raise ValueError(f"Invalid JSON number: {value}")
+
+
+def _finite_json_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"JSON number exceeds the supported finite range: {value}")
+    return parsed
 
 
 def _translation(value: str) -> str:
@@ -66,19 +100,23 @@ def _translation(value: str) -> str:
     return normalized
 
 
-def _normalize_book_name(value: str) -> str:
-    return "".join(value.casefold().split())
+def _bible_version(value: str) -> BibleVersion:
+    if value not in {"v2", "v3"}:
+        raise InvalidRequestError("api_version must be v2 or v3")
+    return cast(BibleVersion, value)
 
 
 class GetBibleClient:
-    """Read-only API client with safe paths, local safeguards, and hash-consistent reads."""
+    """Read-only client with fixed upstreams, bounded responses and native data preservation."""
 
     def __init__(
         self,
         settings: Settings | None = None,
         http_client: httpx.AsyncClient | None = None,
+        registry: ContractRegistry | None = None,
     ) -> None:
         self.settings = settings or Settings.from_env()
+        self.registry = registry or ContractRegistry()
         self._owns_client = http_client is None
         self._http = http_client or httpx.AsyncClient(
             timeout=httpx.Timeout(self.settings.request_timeout_seconds),
@@ -91,179 +129,319 @@ class GetBibleClient:
         if self._owns_client:
             await self._http.aclose()
 
-    async def _read(self, url: str, accept: str) -> tuple[bytes, SourceInfo]:
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        accept: str,
+        service: ServiceName,
+        version: ApiVersion,
+        operation_id: str,
+        *,
+        params: list[tuple[str, str]] | None = None,
+        body: dict[str, Any] | None = None,
+    ) -> tuple[bytes, SourceInfo]:
         try:
-            async with self._http.stream("GET", url, headers={"Accept": accept}) as response:
-                if response.status_code != 200:
-                    preview = bytearray()
-                    async for chunk in response.aiter_bytes():
-                        preview.extend(chunk[: 500 - len(preview)])
-                        if len(preview) >= 500:
-                            break
-                    body = bytes(preview).decode("utf-8", errors="replace")
-                    raise UpstreamError(
-                        f"GetBible returned HTTP {response.status_code} for {url}: {body}"
-                    )
-
+            # Explicit request options also constrain an injected HTTP client's defaults.
+            async with (
+                asyncio.timeout(self.settings.request_timeout_seconds),
+                self._http.stream(
+                    method,
+                    url,
+                    params=httpx.QueryParams(tuple(params)) if params else None,
+                    json=body,
+                    headers={"Accept": accept, "User-Agent": self.settings.user_agent},
+                    follow_redirects=False,
+                    timeout=httpx.Timeout(self.settings.request_timeout_seconds),
+                ) as response,
+            ):
+                source = SourceInfo(
+                    url=str(response.url),
+                    fetched_at=_now(),
+                    api_version=version,
+                    service=service,
+                    status_code=response.status_code,
+                    headers={
+                        name: response.headers[name]
+                        for name in SAFE_RESPONSE_HEADERS
+                        if name in response.headers
+                    },
+                )
                 content_length = response.headers.get("content-length")
-                if content_length:
-                    try:
-                        declared_size = int(content_length)
-                    except ValueError as exc:
-                        raise UpstreamError(
-                            f"GetBible returned an invalid Content-Length for {url}"
-                        ) from exc
-                    if declared_size > self.settings.max_response_bytes:
-                        raise UpstreamError(f"GetBible response exceeds configured size limit: {url}")
-
+                if content_length is not None:
+                    if not re.fullmatch(r"[0-9]+", content_length):
+                        raise self._response_error(
+                            f"GetBible returned an invalid Content-Length for {url}",
+                            source,
+                            operation_id,
+                            method,
+                        )
+                    declared = content_length.lstrip("0") or "0"
+                    if len(declared) > 12 or int(declared) > self.settings.max_response_bytes:
+                        raise self._response_error(
+                            f"GetBible response exceeds configured size limit: {url}",
+                            source,
+                            operation_id,
+                            method,
+                        )
                 chunks: list[bytes] = []
                 size = 0
                 async for chunk in response.aiter_bytes():
                     size += len(chunk)
                     if size > self.settings.max_response_bytes:
-                        raise UpstreamError(f"GetBible response exceeds configured size limit: {url}")
+                        raise self._response_error(
+                            f"GetBible response exceeds configured size limit: {url}",
+                            source,
+                            operation_id,
+                            method,
+                        )
                     chunks.append(chunk)
-        except httpx.HTTPError as exc:
+                source.fetched_at = _now()
+                return b"".join(chunks), source
+        except (httpx.HTTPError, TimeoutError) as exc:
             raise UpstreamError(f"Unable to reach GetBible for {url}: {exc}") from exc
 
-        return b"".join(chunks), SourceInfo(url=url, fetched_at=_now())
+    @staticmethod
+    def _result(data: Any, source: SourceInfo, operation_id: str, method: str = "GET") -> ApiResult:
+        return ApiResult(
+            operation_id=operation_id,
+            data=data,
+            source=source,
+            cache=cache_advice(source, method),
+        )
 
-    async def _json(self, url: str) -> tuple[Any, SourceInfo]:
-        raw, source = await self._read(url, "application/json")
-        try:
-            return json.loads(raw), source
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise UpstreamError(f"GetBible returned invalid JSON for {url}") from exc
+    @classmethod
+    def _response_error(
+        cls,
+        message: str,
+        source: SourceInfo,
+        operation_id: str,
+        method: str = "GET",
+        data: Any = None,
+    ) -> UpstreamError:
+        result = cls._result(data, source, operation_id, method)
+        # A malformed successful response is never suitable for reuse either.
+        result.cache.cacheable = False
+        result.cache.recommended = False
+        result.cache.remaining_ttl_seconds = 0
+        result.cache.expires_at = source.fetched_at
+        result.cache.hash_validation_required = False
+        return UpstreamError(message, result=result)
 
-    async def _sha(self, url: str) -> tuple[str, SourceInfo]:
-        raw, source = await self._read(url, "text/plain, application/octet-stream;q=0.9")
+    @classmethod
+    def _decode(
+        cls,
+        raw: bytes,
+        source: SourceInfo,
+        operation_id: str,
+        method: str = "GET",
+        *,
+        expect_json: bool = False,
+    ) -> Any:
+        if not raw and source.status_code in {204, 304}:
+            return None
+        content_type = source.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        json_mime = content_type == "application/json" or content_type.endswith("+json")
+        if json_mime or (expect_json and not content_type):
+            try:
+                return json.loads(
+                    raw, parse_constant=_invalid_json_constant, parse_float=_finite_json_float
+                )
+            except (UnicodeDecodeError, ValueError, RecursionError) as exc:
+                raise cls._response_error(
+                    f"GetBible returned invalid JSON (HTTP {source.status_code}) for {source.url}",
+                    source,
+                    operation_id,
+                    method,
+                    data=raw.decode("utf-8", errors="replace"),
+                ) from exc
+        if expect_json and 200 <= source.status_code < 300:
+            raise cls._response_error(
+                f"GetBible returned unexpected Content-Type {content_type!r}; expected JSON "
+                f"(HTTP {source.status_code}) for {source.url}",
+                source,
+                operation_id,
+                method,
+                data=raw.decode("utf-8", errors="replace"),
+            )
         try:
-            value = raw.decode("ascii").strip().lower()
+            return raw.decode("utf-8")
         except UnicodeDecodeError as exc:
-            raise UpstreamError(f"GetBible returned a non-ASCII SHA value for {url}") from exc
-        if not SHA_RE.fullmatch(value):
-            raise UpstreamError(f"GetBible returned an invalid SHA value for {url}")
-        return value, source
+            raise cls._response_error(
+                f"GetBible returned invalid UTF-8 (HTTP {source.status_code}) for {source.url}",
+                source,
+                operation_id,
+                method,
+            ) from exc
 
-    def _scope_paths(self, scope: ScopeSpec) -> tuple[str, str]:
-        translation = _translation(scope.translation)
-        base = f"/{translation}"
-        if scope.kind == "book":
-            base += f"/{scope.book}"
-        elif scope.kind == "chapter":
-            base += f"/{scope.book}/{scope.chapter}"
-        return f"{base}.json", f"{base}.sha"
+    @classmethod
+    def _check_status(
+        cls,
+        result: ApiResult,
+        method: str = "GET",
+        documented_redirects: set[int] | None = None,
+    ) -> None:
+        status = result.source.status_code
+        if 200 <= status < 300 or status in (documented_redirects or set()):
+            return
+        preview = json.dumps(result.data, ensure_ascii=False)[:2048]
+        raise cls._response_error(
+            f"GetBible returned HTTP {status} for {result.source.url}: {preview}",
+            result.source,
+            result.operation_id,
+            method,
+            data=result.data,
+        )
 
-    async def list_translations(self) -> MappingResult:
-        url = f"{self.settings.api_base}/translations.json"
-        data, source = await self._json(url)
-        return MappingResult(data=data, source=source, hash_guidance=CACHE_POLICY)
+    async def call_api_operation(
+        self,
+        service: str,
+        version: str,
+        operation_id: str,
+        parameters: dict[str, Any] | None = None,
+        body: dict[str, Any] | None = None,
+    ) -> ApiResult:
+        """Execute exactly one validated contract operation without following redirects."""
+        try:
+            prepared = self.registry.prepare(service, version, operation_id, parameters, body)
+            base = self.settings.service_base(prepared.service, prepared.version)
+        except (ContractError, ValueError) as exc:
+            raise InvalidRequestError(str(exc)) from exc
+        # Paths are contract-controlled. Keep any operator-configured deployment prefix.
+        version_prefix = f"/{prepared.version}"
+        if prepared.path == version_prefix or prepared.path.startswith(f"{version_prefix}/"):
+            url = base + prepared.path[len(version_prefix) :]
+        else:
+            url = base[: -len(version_prefix)] + prepared.path
+        if prepared.method.upper() not in {"GET", "POST"}:
+            raise InvalidRequestError(
+                "Only documented read-only GET and search POST operations run"
+            )
+        raw, source = await self._request(
+            prepared.method,
+            url,
+            prepared.accept,
+            cast(ServiceName, prepared.service),
+            cast(ApiVersion, prepared.version),
+            operation_id,
+            params=prepared.params,
+            body=prepared.body,
+        )
+        expect_json = "application/json" in prepared.accept and "text/plain" not in prepared.accept
+        data = self._decode(raw, source, operation_id, prepared.method, expect_json=expect_json)
+        result = self._result(data, source, operation_id, prepared.method)
+        responses = prepared.operation.get("responses", {})
+        redirects = {
+            status for status in range(300, 400) if str(status) in responses or "3XX" in responses
+        }
+        self._check_status(result, prepared.method, redirects)
+        return result
 
-    async def list_books(self, translation: str) -> MappingResult:
-        translation = _translation(translation)
-        url = f"{self.settings.api_base}/{translation}/books.json"
-        data, source = await self._json(url)
-        return MappingResult(data=data, source=source, hash_guidance=CACHE_POLICY)
+    @staticmethod
+    def _translation_parameters(translation: str, version: BibleVersion) -> dict[str, Any]:
+        name = "abbreviation" if version == "v2" else "translation"
+        return {name: _translation(translation)}
 
-    async def list_chapters(self, translation: str, book: int) -> MappingResult:
-        translation = _translation(translation)
-        if not 1 <= book <= 200:
-            raise InvalidRequestError("book must be between 1 and 200")
-        url = f"{self.settings.api_base}/{translation}/{book}/chapters.json"
-        data, source = await self._json(url)
-        return MappingResult(data=data, source=source, hash_guidance=CACHE_POLICY)
+    @classmethod
+    def _scope_parameters(cls, scope: ScopeSpec) -> dict[str, Any]:
+        parameters = cls._translation_parameters(scope.translation, scope.api_version)
+        if scope.book is not None:
+            parameters["book"] = scope.book
+        if scope.chapter is not None:
+            parameters["chapter"] = scope.chapter
+        return parameters
+
+    async def list_translations(self, api_version: str = "v2") -> MappingResult:
+        version = _bible_version(api_version)
+        operation = "listTranslations" if version == "v2" else "getTranslations"
+        result = await self.call_api_operation("api", version, operation)
+        return MappingResult(
+            data=result.data, source=result.source, hash_guidance=CACHE_POLICY, cache=result.cache
+        )
+
+    async def list_books(self, translation: str, api_version: str = "v2") -> MappingResult:
+        version = _bible_version(api_version)
+        operation = "listBooks" if version == "v2" else "getBooks"
+        result = await self.call_api_operation(
+            "api", version, operation, self._translation_parameters(translation, version)
+        )
+        return MappingResult(
+            data=result.data, source=result.source, hash_guidance=CACHE_POLICY, cache=result.cache
+        )
+
+    async def list_chapters(
+        self, translation: str, book: int, api_version: str = "v2"
+    ) -> MappingResult:
+        version = _bible_version(api_version)
+        operation = "listChapters" if version == "v2" else "getChapters"
+        parameters = self._translation_parameters(translation, version)
+        parameters["book"] = book
+        result = await self.call_api_operation("api", version, operation, parameters)
+        return MappingResult(
+            data=result.data, source=result.source, hash_guidance=CACHE_POLICY, cache=result.cache
+        )
 
     async def get_hash(self, scope: ScopeSpec) -> HashResult:
-        _, sha_path = self._scope_paths(scope)
-        value, source = await self._sha(f"{self.settings.api_base}{sha_path}")
-        return HashResult(scope=scope, hash=value, source=source)
+        operation = f"get{scope.kind.title()}Checksum"
+        result = await self.call_api_operation(
+            "api", scope.api_version, operation, self._scope_parameters(scope)
+        )
+        value = result.data.strip().lower() if isinstance(result.data, str) else ""
+        if not SHA_RE.fullmatch(value):
+            raise self._response_error(
+                f"GetBible returned an invalid SHA value for {result.source.url}",
+                result.source,
+                operation,
+                data=result.data,
+            )
+        return HashResult(scope=scope, hash=value, source=result.source, cache=result.cache)
 
     async def get_scripture(self, scope: ScopeSpec) -> ScriptureResult:
-        json_path, sha_path = self._scope_paths(scope)
-        json_url = f"{self.settings.api_base}{json_path}"
-        sha_url = f"{self.settings.api_base}{sha_path}"
+        operation = f"get{scope.kind.title()}"
         last_before = ""
         last_after = ""
-
         for attempt in range(2):
-            last_before, _ = await self._sha(sha_url)
-            data, source = await self._json(json_url)
-            last_after, _ = await self._sha(sha_url)
+            before = await self.get_hash(scope)
+            result = await self.call_api_operation(
+                "api", scope.api_version, operation, self._scope_parameters(scope)
+            )
+            after = await self.get_hash(scope)
+            last_before, last_after = before.hash, after.hash
             if last_before == last_after:
                 return ScriptureResult(
                     scope=scope,
-                    data=data,
+                    data=result.data,
                     hash=last_after,
-                    source=source,
-                    hash_source_url=sha_url,
+                    source=result.source,
+                    hash_source_url=after.source.url,
                     consistency_checked=True,
                     consistency_retries=attempt,
                     cache_policy=CACHE_POLICY,
+                    cache=result.cache,
                 )
-
         raise ContentChangedDuringReadError(
             f"GetBible content changed repeatedly during retrieval ({last_before} -> {last_after}); "
             "retry the operation"
         )
 
-    async def query_verses(self, translation: str, references: str) -> QueryResult:
+    async def query_verses(
+        self, translation: str, references: str, api_version: str = "v2"
+    ) -> QueryResult:
+        version = _bible_version(api_version)
         translation = _translation(translation)
         references = references.strip()
-        if not references or len(references) > 4096:
-            raise InvalidRequestError("references must contain between 1 and 4096 characters")
-
-        resolved, unresolved = await self._resolve_reference_scopes(translation, references)
-        semaphore = asyncio.Semaphore(self.settings.max_parallel_hash_checks)
-
-        async def fetch_chapter_hash(scope: ScopeSpec) -> ChapterHash:
-            async with semaphore:
-                result = await self.get_hash(scope)
-            return ChapterHash(
-                translation=scope.translation,
-                book=scope.book or 0,
-                chapter=scope.chapter or 0,
-                hash=result.hash,
-                source_url=result.source.url,
-            )
-
-        async def fetch_hashes() -> list[ChapterHash]:
-            return list(await asyncio.gather(*(fetch_chapter_hash(scope) for scope in resolved)))
-
-        encoded = quote(references, safe=":;,-")
-        url = f"{self.settings.query_base}/{translation}/{encoded}"
-        last_before: list[ChapterHash] = []
-        last_after: list[ChapterHash] = []
-
-        for attempt in range(2):
-            last_before = await fetch_hashes()
-            data, source = await self._json(url)
-            last_after = await fetch_hashes()
-            before_versions = {(item.book, item.chapter): item.hash for item in last_before}
-            after_versions = {(item.book, item.chapter): item.hash for item in last_after}
-            if before_versions == after_versions:
-                cacheable = not unresolved and bool(last_after)
-                policy = CACHE_POLICY
-                if not cacheable:
-                    policy += (
-                        " Do not persist this grouped result until every participating chapter has "
-                        "been resolved and its hash stored."
-                    )
-                return QueryResult(
-                    translation=translation,
-                    references=references,
-                    data=data,
-                    source=source,
-                    chapter_hashes=last_after,
-                    unresolved_references=unresolved,
-                    cacheable=cacheable,
-                    consistency_checked=True,
-                    consistency_retries=attempt,
-                    cache_policy=policy,
-                )
-
-        raise ContentChangedDuringReadError(
-            "One or more participating chapters changed repeatedly during the grouped query; "
-            "retry the operation"
+        if not references:
+            raise InvalidRequestError("references must not be empty")
+        result = await self.call_api_operation(
+            "query", version, "getScripture", {"translation": translation, "reference": references}
+        )
+        return QueryResult(
+            translation=translation,
+            references=references,
+            data=result.data,
+            source=result.source,
+            cache_policy=RUNTIME_CACHE_POLICY,
+            cache=result.cache,
         )
 
     async def get_hash_manifest(
@@ -271,125 +449,35 @@ class GetBibleClient:
         kind: ManifestKind,
         translation: str | None = None,
         book: int | None = None,
+        api_version: str = "v2",
     ) -> ManifestResult:
+        version = _bible_version(api_version)
+        parameters: dict[str, Any] = {}
         if kind == "all_translations":
             if translation is not None or book is not None:
                 raise InvalidRequestError("all_translations manifest takes no translation or book")
-            path = "/checksum.json"
+            operation = "listTranslationChecksums" if version == "v2" else "getTranslationChecksums"
         elif kind == "translation":
             if translation is None or book is not None:
                 raise InvalidRequestError("translation manifest requires translation only")
             translation = _translation(translation)
-            path = f"/{translation}/checksum.json"
-        else:
+            parameters = self._translation_parameters(translation, version)
+            operation = "listBookChecksums" if version == "v2" else "getBookChecksums"
+        elif kind == "book":
             if translation is None or book is None:
                 raise InvalidRequestError("book manifest requires translation and book")
             translation = _translation(translation)
-            if not 1 <= book <= 200:
-                raise InvalidRequestError("book must be between 1 and 200")
-            path = f"/{translation}/{book}/checksum.json"
-
-        data, source = await self._json(f"{self.settings.api_base}{path}")
+            parameters = {**self._translation_parameters(translation, version), "book": book}
+            operation = "listChapterChecksums" if version == "v2" else "getChapterChecksums"
+        else:
+            raise InvalidRequestError("kind must be all_translations, translation or book")
+        result = await self.call_api_operation("api", version, operation, parameters)
         return ManifestResult(
             kind=kind,
             translation=translation,
             book=book,
-            data=data,
-            source=source,
+            data=result.data,
+            source=result.source,
             cache_policy=CACHE_POLICY,
+            cache=result.cache,
         )
-
-    async def _resolve_reference_scopes(
-        self,
-        translation: str,
-        references: str,
-    ) -> tuple[list[ScopeSpec], list[str]]:
-        own_books = await self.list_books(translation)
-        payloads = [own_books.data]
-        if translation != "kjv":
-            payloads.append((await self.list_books("kjv")).data)
-
-        by_name, valid_numbers = self._book_index(payloads)
-        scopes: dict[tuple[int, int], ScopeSpec] = {}
-        unresolved: list[str] = []
-
-        for raw_reference in references.split(";"):
-            reference = raw_reference.strip()
-            left = reference.split(":", 1)[0].strip()
-            match = REFERENCE_RE.fullmatch(left)
-            if not match:
-                unresolved.append(reference)
-                continue
-
-            book_token = match.group(1).strip()
-            chapter = int(match.group(2))
-            if not 1 <= chapter <= 300:
-                unresolved.append(reference)
-                continue
-
-            book: int | None
-            if book_token.isdigit():
-                candidate = int(book_token)
-                book = candidate if not valid_numbers or candidate in valid_numbers else None
-            else:
-                book = by_name.get(_normalize_book_name(book_token))
-
-            if book is None:
-                unresolved.append(reference)
-                continue
-
-            scopes[(book, chapter)] = ScopeSpec(
-                kind="chapter",
-                translation=translation,
-                book=book,
-                chapter=chapter,
-            )
-
-        return list(scopes.values()), unresolved
-
-    @staticmethod
-    def _book_index(payloads: list[Any]) -> tuple[dict[str, int], set[int]]:
-        by_name: dict[str, int] = {}
-        numbers: set[int] = set()
-        number_keys = ("nr", "number", "book_number", "id")
-        name_keys = (
-            "name",
-            "book_name",
-            "name_long",
-            "title",
-            "short_name",
-            "abbreviation",
-        )
-
-        def visit(value: Any) -> None:
-            if isinstance(value, list):
-                for item in value:
-                    visit(item)
-                return
-            if not isinstance(value, dict):
-                return
-
-            number: int | None = None
-            for key in number_keys:
-                candidate = value.get(key)
-                try:
-                    if candidate is not None:
-                        number = int(candidate)
-                        break
-                except (TypeError, ValueError):
-                    continue
-
-            if number is not None and 1 <= number <= 200:
-                numbers.add(number)
-                for key in name_keys:
-                    candidate = value.get(key)
-                    if isinstance(candidate, str) and candidate.strip():
-                        by_name[_normalize_book_name(candidate)] = number
-
-            for child in value.values():
-                if isinstance(child, (dict, list)):
-                    visit(child)
-
-        for payload in payloads:
-            visit(payload)
-        return by_name, numbers
