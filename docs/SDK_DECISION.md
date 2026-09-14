@@ -16,7 +16,7 @@ same schemas, validation, tools, resources and behavior, without maintaining thr
 implementations of the API and cache contracts.
 
 MCP is a protocol rather than a requirement to install a server package in each caller's language.
-A client library must implement initialization and capability negotiation before calling tools;
+A client library must implement discovery and the selected protocol's request metadata before calling tools;
 a generic REST request to the MCP endpoint is insufficient. For an application that only needs
 scripture data, the underlying REST endpoints remain a valid direct integration.
 

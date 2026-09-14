@@ -153,7 +153,7 @@ See [docs/CLIENTS.md](docs/CLIENTS.md) for stdio, remote, and Inspector examples
 Python, JavaScript and PHP applications can connect to the same MCP endpoint using a
 compatible client. This project ships one Python server package; npm/Composer server packages are
 not required. Ordinary applications can also call the existing REST endpoints directly. The MCP
-endpoint uses JSON-RPC initialization and tool calls. The documentation under `site/v2/` describes
+endpoint uses versioned JSON-RPC discovery and tool requests. The documentation under `site/v2/` describes
 MCP package 2.0 and covers every supported upstream API version.
 
 ## Python library interface

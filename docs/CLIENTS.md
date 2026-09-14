@@ -15,22 +15,24 @@ Scripture tools default to upstream v3, with v2 available explicitly through `ap
 | Use case | Integration |
 |---|---|
 | AI host with remote MCP support | Configure the application's published MCP endpoint URL as a Streamable HTTP server. |
-| Python, JavaScript or PHP application acting as an MCP client | Use a supported client library to initialize that endpoint, discover tools and call them. |
+| Python, JavaScript or PHP application acting as an MCP client | Use a supported client library to discover the endpoint's capabilities, list tools and call them. |
 | AI host requiring a local executable | Install the Python package and launch `getbible-mcp --transport stdio`. |
 | Ordinary application needing scripture or study data | Call the published REST APIs using the desired upstream OpenAPI contract. |
 
 This repository publishes one Python MCP package. It does not publish npm or Composer packages.
-MCP clients perform JSON-RPC initialization and capability negotiation before calling tools. The
-MCP endpoint does not accept arbitrary scripture paths or HTTP query parameters as a REST API.
+Clients discover the server's supported protocol versions and capabilities before calling tools.
+For protocol 2026-07-28, `server/discover` replaces the initialization handshake: each request carries
+its protocol version and client capabilities in `_meta`. A compatible SDK supplies this metadata.
+The MCP endpoint does not accept arbitrary scripture paths or HTTP query parameters as a REST API.
 
 ## Streamable HTTP
 
 Use the full MCP URL supplied by the application exactly, including its path. Do not append `/mcp`,
 an API version, or a trailing slash. The library factory defaults to `/mcp`, while hosts may select
-`/` or another supported path. Client libraries handle initialization, protocol headers and
+`/` or another supported path. Client libraries handle discovery, protocol headers, request metadata and
 `tools/list`; a normal web-browser GET is not a sufficient protocol test.
 
-Read the advertised tool schemas after initialization. Start with `discover_apis`, inspect a chosen
+Read the advertised tool schemas after discovery. Start with `discover_apis`, inspect a chosen
 service/version through `describe_api_operation`, and execute its operation with
 `call_api_operation`. Use the convenience scripture/search tools for common tasks.
 
@@ -73,7 +75,7 @@ npx @modelcontextprotocol/inspector \
   .venv/bin/getbible-mcp --transport stdio
 ```
 
-For a remote application, select Streamable HTTP and enter its published MCP endpoint URL. Initialize,
+For a remote application, select Streamable HTTP and enter its published MCP endpoint URL. Connect,
 list tools, inspect schemas, read documentation and OpenAPI resources, retrieve the prompt and make
 representative calls. The [examples](../site/v2/examples.md) cover v3 scripture, grouped references,
 search GET/POST, dictionaries, commentaries and bookmarks.
