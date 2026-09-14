@@ -53,6 +53,11 @@ public documents before copying their URLs into the portal. Do not submit a draf
 items after the owner supplies the information. Select a suitable current directory category and
 only the countries the publisher approves.
 
+Use the existing [GetBible support site](https://git.vdm.dev/getBible/support) from the repository's
+homepage metadata. GitHub issues are disabled on this repository. Confirm that the support site
+is accessible to users and reviewers, and provide a private contact route for token and privacy
+requests; do not direct those requests into a public discussion.
+
 ## 2. Test the connection in ChatGPT
 
 In ChatGPT, open **Settings → Security and login → Developer mode**. Open **Plugins**, use the

@@ -31,6 +31,6 @@ Report missing coverage and service errors accurately rather than presenting inv
 an API response.
 
 The [privacy notice](PRIVACY.md) describes request processing and operational records. General
-technical support is available through the [public issue tracker](https://github.com/getbible/mcp/issues).
-Do not post credentials or personal information there. Before publication, the operator must confirm
+technical support starts at the [GetBible support site](https://git.vdm.dev/getBible/support).
+Do not post credentials or personal information in public discussions. Before publication, the operator must confirm
 the administrator contact route for private access-token requests and approve the final terms.

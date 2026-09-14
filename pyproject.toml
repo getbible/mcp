@@ -47,7 +47,7 @@ getbible-mcp = "getbible_mcp.cli:main"
 Homepage = "https://github.com/getbible/mcp"
 Documentation = "https://github.com/getbible/mcp/blob/main/docs/CLIENTS.md"
 Repository = "https://github.com/getbible/mcp"
-Issues = "https://github.com/getbible/mcp/issues"
+Support = "https://git.vdm.dev/getBible/support"
 Changelog = "https://github.com/getbible/mcp/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
