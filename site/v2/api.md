@@ -123,6 +123,15 @@ instead of guessing padding or constructing a slug from a displayed word. Dictio
 definitions, links and scripture references. Bulk dictionaries, build information, build reports,
 JSON Schemas and the SHA-256 manifest are also available through their documented operations.
 
+For interactive word lookup, call `search_dictionary_entries` with the discovered module ID and
+word or alias. It fetches the current index and returns a bounded page of unchanged matching
+records, including repeated occurrences. Fetch definitions using the returned exact IDs. The
+matching rule uses Unicode NFD, removes combining accents and folds case; choose `exact`, `prefix`
+or `contains`. It does not search definition text or add parameters to the static dictionary API.
+Follow `next_offset` with the same inputs if more records are needed. `see_also` contains outgoing
+links and `backlinks` incoming links in the same module; read their text before explaining a
+relationship. See the MCP resource `getbible://docs/study-workflows` and [examples](examples.md).
+
 ## Commentaries and introductions
 
 Start with `listCommentaries`, then `getCommentaryMetadata` and `getCommentaryBooks` in service
@@ -130,6 +139,8 @@ Start with `listCommentaries`, then `getCommentaryMetadata` and `getCommentaryBo
 operations for bulk access. Discover coverage instead of assuming a comment exists for every verse.
 Books can range from 1 to 83. Chapter 0 is a book introduction, and verse 0 is a chapter introduction.
 A comment is published once at its lowest covered verse; retain its coverage/reference information.
+For a requested verse, include all comments whose `verses` array contains it (or whose single
+`verse` equals it when no range is present). Do not match only the first verse of a range.
 Build records, JSON Schemas and the SHA-256 manifest are available too.
 
 ## Public bookmarks and topic names

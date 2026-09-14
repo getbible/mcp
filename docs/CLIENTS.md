@@ -42,6 +42,10 @@ your MCP client's secure HTTP authentication settings to send `Authorization: Be
 Tokens are issued for individual endpoints; use them only with the endpoint approved by the
 administrators. The [usage policy](../site/v2/usage-policy.md) lists the default limits.
 
+For the public ChatGPT plugin, choose **no authentication**. The generic bearer-header option above
+applies to clients that support custom credentials; it is not an OAuth connection or a ChatGPT
+API-key sign-in flow. See the [plugin connection and publishing steps](PLUGIN_PUBLISHING.md).
+
 ## Choose a transport
 
 Use Streamable HTTP when an application provides a remote MCP service and your client supports
@@ -122,3 +126,32 @@ For a remote application, select Streamable HTTP and enter its published MCP end
 list tools, inspect schemas, read documentation and OpenAPI resources, retrieve the prompt and make
 representative calls. The [examples](../site/v2/examples.md) cover v3 scripture, grouped references,
 search GET/POST, dictionaries, commentaries and bookmarks.
+
+## Verify a remote endpoint
+
+From a clone with this project's development dependencies installed:
+
+```bash
+.venv/bin/python scripts/check_endpoint.py
+.venv/bin/python scripts/check_endpoint.py --expect-version 2.1.0 --upstreams
+```
+
+The first check connects with the official MCP SDK, validates discovery and tool schemas, reads
+the guides and nine bundled contracts, and retrieves the integration prompt. The second also
+requires the requested runtime version and calls each service/version with representative data.
+It checks native response schemas, returned scripture, provenance, cache limits and tool errors.
+It does not exercise every upstream route or prove a directory submission will be accepted.
+
+Pass `--url` with another operator's complete endpoint URL to test that instance. HTTPS is required
+except for explicit loopback HTTP testing. An administrator-issued token, when needed, is read
+from `GETBIBLE_MCP_TOKEN`; keep it out of command arguments, transcripts and committed files.
+The public endpoint needs no token.
+
+The probe makes sequential, bounded requests and stops on failure. It does not retry or run on
+a schedule. An HTTP 200 with MCP `isError: true` is a failed lookup. Honor rate limits before
+retrying a failed remote run. Use `--help` for timeout options.
+
+A browser GET to the protocol endpoint can wait on an event stream. `/healthz` describes the
+runtime; the hosting application's `/readyz`, where supplied, checks startup. Use actual MCP
+calls to test functionality. Finally, run the [plugin test cases](../plugin/getbible/test-cases.json)
+inside the intended AI client to verify that the model chooses and combines the tools correctly.

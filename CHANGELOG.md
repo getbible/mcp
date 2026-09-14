@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0 — 2026-09-14
+
+- Add bounded dictionary-index lookup with exact identifiers, accent-insensitive matching and pagination.
+- Guide AI clients through dictionary relationships and commentary coverage, introductions and ranges.
+- Advertise the supplied GetBible icon and description through standard MCP server metadata.
+- Distinguish local contract discovery from public API calls in tool annotations.
+- Include portable plugin metadata, branding, review test cases and a concrete publishing handoff.
+- Add an opt-in, bounded endpoint probe and protocol-level study workflow checks.
+- Preserve all nine API contracts, native responses, uncached reads and the existing main-merge release gate.
+
 ## 2.0.2 — 2026-09-14
 
 - Require a verified PR merge into `main` before production publication; remove manual release dispatch.

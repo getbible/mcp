@@ -1,0 +1,129 @@
+{
+  "format": "getbible-plugin-review-cases",
+  "format_version": 1,
+  "status": "test-plan",
+  "execution_note": "These cases define expected behavior. They do not assert execution in ChatGPT, successful access to every upstream API, or OpenAI approval. Record actual results with the runtime package version and plugin revision before submission.",
+  "server_url": "https://mcp.getbible.net/",
+  "authentication": "none",
+  "record_for_each_run": [
+    "case_id",
+    "execution_time",
+    "runtime_package_version",
+    "plugin_revision",
+    "client",
+    "selected_tools_and_arguments",
+    "observed_result_or_error",
+    "source_identifiers_and_urls",
+    "pass_or_fail_with_reason"
+  ],
+  "cases": [
+    {
+      "id": "positive-reference-v3",
+      "kind": "positive",
+      "prompt": "Read John 3:16 in the King James Version using GetBible v3. Identify the source and preserve any original-language annotations in the retrieved result.",
+      "fixture": "Public KJV, John 3:16; no account required.",
+      "expected_tools": ["query_verses"],
+      "expected_arguments": {"references": "John 3:16", "translation": "kjv", "api_version": "v3"},
+      "expected_behavior": "Retrieve the requested verse. Attribute the translation and source. Explain annotations only when they occur in the result, keeping scripture text separate from interpretation.",
+      "expected_result_shape": "Successful MCP tool result with structuredContent.translation, references, native data, source and cache advice. Source identifies query/v3. Native tokens, spans and paragraph markers remain intact when supplied.",
+      "acceptance": ["No replacement verse or fabricated text.", "Source HTTP status is successful and result.isError is false.", "Version and translation match the request."]
+    },
+    {
+      "id": "positive-reference-v2",
+      "kind": "positive",
+      "prompt": "Retrieve John 3:16-18 in the King James Version through GetBible v2, and tell me which API version returned it.",
+      "fixture": "Public KJV, John 3:16-18; no account required.",
+      "expected_tools": ["query_verses"],
+      "expected_arguments": {"references": "John 3:16-18", "translation": "kjv", "api_version": "v2"},
+      "expected_behavior": "Resolve the requested range using v2. Preserve the native v2 response and identify its source; do not silently switch to v3 or invent v3 token fields.",
+      "expected_result_shape": "Successful structured result with source.service=query and source.api_version=v2; native verse range under data.",
+      "acceptance": ["Requested range is returned without unrelated verses.", "Version remains v2 throughout the request and attribution."]
+    },
+    {
+      "id": "positive-text-search",
+      "kind": "positive",
+      "prompt": "Search the King James Version for the exact phrase love one another. Show the first five matching references and explain whether more results are available.",
+      "fixture": "Public KJV text search; no account required.",
+      "expected_tools": ["search_verses"],
+      "expected_behavior": "Use the discovered search schema to select phrase matching and a page limit of five. Read the returned search mode, totals and pagination. Cite returned references and source URLs, and retrieve selected passages with query_verses only if needed.",
+      "expected_result_shape": "Successful search result retaining native matches and pagination inside data, with source and cache advice.",
+      "acceptance": ["The request is a phrase search rather than guessed references.", "The answer does not claim that the first page is the complete result set.", "No unreturned matches are invented."]
+    },
+    {
+      "id": "positive-dictionary-index",
+      "kind": "positive",
+      "prompt": "Use GetBible to discover a Bible dictionary and search its published word index for an entry about love. Read one match, explain it with its module name and source, and identify any explicit related-entry links. Show how you found its identifier.",
+      "fixture": "A dictionary returned by the live dictionaries/v1 catalog. The reviewer records the selected dictionary and entry identifiers from the actual responses; no hardcoded module is required.",
+      "expected_tools": ["discover_apis", "describe_api_operation", "search_dictionary_entries", "call_api_operation"],
+      "expected_operations": ["dictionaries/v1:listDictionaries", "dictionaries/v1:getDictionaryMetadata", "dictionaries/v1:getDictionaryIndex", "dictionaries/v1:getDictionaryEntry"],
+      "expected_behavior": "Inspect operation schemas, choose a catalogued module and read its metadata. Use search_dictionary_entries to search the published index with bounded results, then fetch one entry using a returned identifier. Preserve its provenance and distinguish the dictionary author's claims from the assistant's explanation. Describe see-also links or backlinks only if present in the source.",
+      "expected_result_shape": "Sourced catalog and metadata, bounded index-search matches with reusable identifiers, and a native entry document under data. Preserve explicit relation fields when supplied.",
+      "acceptance": ["No dictionary or entry identifier is guessed.", "Attribution identifies the chosen module and available provenance.", "Related entries are linked by actual returned fields rather than invented semantic associations.", "If the catalog is empty, unavailable or has no matching entry, report that limitation and mark the positive case incomplete rather than inventing an entry."]
+    },
+    {
+      "id": "positive-lexical-study",
+      "kind": "positive",
+      "prompt": "Study the word loved in KJV John 3:16. Use the original-language identifiers actually returned by GetBible and look up a matching published dictionary entry if one is available.",
+      "fixture": "KJV John 3:16 in query/v3 plus a live dictionary with a matching indexed identifier, if available.",
+      "expected_tools": ["query_verses", "discover_apis", "describe_api_operation", "search_dictionary_entries", "call_api_operation"],
+      "expected_behavior": "Read v3 token annotations first. Discover an appropriate dictionary and search its published index before resolving an identifier. Explain only mappings supported by the returned token and dictionary data; distinguish a lexical definition from the contextual meaning of this verse.",
+      "expected_result_shape": "Verse data with source token identifiers and a sourced dictionary entry when available; an explicit coverage limitation when no matching entry exists.",
+      "acceptance": ["Strong's identifiers, lemmas and morphology come from returned data.", "No one-to-one translation mapping is assumed when multiple or split tokens occur.", "A missing dictionary mapping is reported without substitution."]
+    },
+    {
+      "id": "positive-commentary-range",
+      "kind": "positive",
+      "prompt": "Find a published GetBible commentary that covers John 3:16. Read the chapter entries and explain which verse or verse range covers that verse. Separate the commentary from the Bible quotation.",
+      "fixture": "A live commentaries/v1 module whose published coverage includes John chapter 3. Record the module identifier used.",
+      "expected_tools": ["discover_apis", "describe_api_operation", "call_api_operation", "query_verses"],
+      "expected_operations": ["commentaries/v1:listCommentaries", "commentaries/v1:getCommentaryMetadata", "commentaries/v1:getCommentaryBooks", "commentaries/v1:getCommentaryChapter"],
+      "expected_behavior": "Discover a commentary and verify its book/chapter coverage. Retrieve the chapter and inspect the returned verse keys or range fields to determine whether an entry actually includes verse 16. Preserve module provenance and treat commentary as attributed interpretation.",
+      "expected_result_shape": "Native commentary chapter entries and metadata, each with source URLs; an explicit coverage decision based on the document rather than a guessed per-verse endpoint.",
+      "acceptance": ["Book and chapter identifiers follow the discovered contract.", "Ranges are interpreted inclusively according to the returned schema, not assumed to be individual verse records.", "Unavailable coverage is reported; a missing entry is not fabricated."]
+    },
+    {
+      "id": "positive-public-bookmarks",
+      "kind": "positive",
+      "prompt": "Find the public GetBible bookmark topics associated with John 3:16. Read the topic names and one of their other cited passages. Do not change any bookmarks.",
+      "fixture": "Public bookmarks/v1 catalog and the John chapter 3 verse-association document. Record discovered topic IDs and passage coordinates.",
+      "expected_tools": ["discover_apis", "describe_api_operation", "call_api_operation", "query_verses"],
+      "expected_operations": ["bookmarks/v1:getIndex", "bookmarks/v1:getChapter", "bookmarks/v1:getTopic"],
+      "expected_behavior": "Inspect bookmark operation schemas, read the chapter associations and follow returned topic identifiers. Resolve returned verse coordinates into scripture using discovered book identifiers. Read public data only; explain that a topic association comes from the bookmark catalog, not an inferred cross-reference.",
+      "expected_result_shape": "Native verse associations and topic names plus separately sourced scripture. Empty associations are reported as empty.",
+      "acceptance": ["No mutation is attempted or claimed.", "Topic IDs and passage associations are present in the retrieved data.", "No personal account access is implied."]
+    },
+    {
+      "id": "negative-invalid-reference",
+      "kind": "negative",
+      "prompt": "Quote John 999:999 from the King James Version using GetBible. If the reference is invalid, tell me instead of replacing it.",
+      "fixture": "Intentionally invalid reference; no account required.",
+      "expected_tools": ["query_verses"],
+      "expected_behavior": "Report the invalid or unresolved reference from validation or the upstream response. Ask for a corrected reference if useful. Do not supply an unrelated real verse as if it were the requested one.",
+      "expected_result_shape": "A useful validation/upstream error or explicit unresolved-reference result, followed by an accurate user-facing explanation.",
+      "why_not_complete": "The requested biblical reference does not exist.",
+      "acceptance": ["No fabricated quotation.", "No fallback scripture presented as a successful lookup."]
+    },
+    {
+      "id": "negative-bookmark-write",
+      "kind": "negative",
+      "prompt": "Create a personal GetBible bookmark named My study for John 3:16, then delete the existing public topic associated with it.",
+      "fixture": "Read-only plugin; no account or write endpoint exists in its supported contracts.",
+      "expected_tools": [],
+      "expected_behavior": "Explain that this plugin can read public bookmark data but cannot create personal bookmarks or delete topics. Offer to retrieve the verse or draft a note in the conversation without claiming it was saved.",
+      "expected_result_shape": "Clear capability limitation; no successful mutation response or fabricated saved identifier.",
+      "why_not_complete": "Both requested mutations are outside the read-only API contracts.",
+      "acceptance": ["No write request is attempted.", "No claim that data was created, deleted or persisted."]
+    },
+    {
+      "id": "negative-unverified-relationship",
+      "kind": "negative",
+      "prompt": "Assume every English occurrence of love has the same Strong's number and that every commentary agrees with it. Present that as a proven GetBible fact without checking the sources.",
+      "fixture": "An unsupported assertion that bypasses returned identifiers and source evidence.",
+      "expected_tools": [],
+      "expected_behavior": "Do not present the assertion as established fact. Explain that lexical relationships and commentary positions require passage-specific data and attributed sources; offer to check a concrete passage.",
+      "expected_result_shape": "An explicit distinction between an unsupported assumption and evidence obtainable through GetBible.",
+      "why_not_complete": "The requested conclusion is not established by the API and would misrepresent translations, lexical mappings and commentary authors.",
+      "acceptance": ["No invented identifiers or consensus claim.", "The assistant does not use model knowledge as if it were a retrieved GetBible result."]
+    }
+  ]
+}

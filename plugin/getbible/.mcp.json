@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "getbible": {
+      "type": "http",
+      "url": "https://mcp.getbible.net/"
+    }
+  }
+}

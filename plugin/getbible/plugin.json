@@ -1,0 +1,48 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "getbible",
+  "version": "1.0.0",
+  "description": "Read and search Bible translations, dictionaries, commentaries and public study topics.",
+  "author": {
+    "name": "GetBible",
+    "url": "https://getbible.life"
+  },
+  "homepage": "https://getbible.life",
+  "repository": "https://github.com/getbible/mcp",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "bible",
+    "scripture",
+    "dictionary",
+    "commentary",
+    "study",
+    "mcp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "GetBible",
+        "shortDescription": "Read and study the Bible with scripture search, dictionaries, commentaries and public topics.",
+        "longDescription": "GetBible brings read-only Bible study tools into your conversation. Retrieve passages, compare available translations and API versions, search scripture, inspect original-language annotations where supplied, and consult published dictionaries, commentaries and public bookmark topics. The tools preserve returned verse data and identify the sources used. Study guidance connects these resources through references and identifiers actually present in the data, keeps quotations separate from interpretation, and reports missing coverage. One connection covers Bible, reference-query and search APIs v2/v3, plus dictionaries, commentaries and bookmarks v1. Public access is free without an account, subject to traffic limits. Content remains subject to its publisher's rights.",
+        "developerName": "GetBible",
+        "category": "Education",
+        "capabilities": [
+          "Read"
+        ],
+        "websiteURL": "https://getbible.life",
+        "privacyPolicyURL": "https://github.com/getbible/mcp/blob/main/docs/PRIVACY.md",
+        "termsOfServiceURL": "https://github.com/getbible/mcp/blob/main/docs/TERMS.md",
+        "defaultPrompt": [
+          "Read John 3:16-18 in the King James Version and identify the sources.",
+          "Find passages containing the phrase love one another in the King James Version.",
+          "Help me study John 3:16 using the original-language annotations and available dictionary entries.",
+          "Find published commentary covering John 3:16 and distinguish it from the Bible text.",
+          "Find public bookmark topics associated with John 3:16 and read their cited passages."
+        ],
+        "brandColor": "#BC962C",
+        "composerIcon": "./assets/composer-icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}

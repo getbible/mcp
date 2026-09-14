@@ -36,6 +36,14 @@ administrators. See the [access policy](site/v2/usage-policy.md) for limits and
 You can also connect to a privately operated instance using the URL supplied by its operator.
 The Python library supports configurable endpoint URLs and local stdio clients.
 
+For ChatGPT and Codex, the [plugin package](plugin/getbible/) includes GetBible branding and the
+official connection configuration. The [publishing handoff](docs/PLUGIN_PUBLISHING.md) contains
+listing text, client tests and the steps for the person submitting it. The package is prepared
+for review; this repository does not claim that the public directory listing is already approved.
+
+For definitions and study material, follow the [dictionary and commentary guide](docs/STUDY_WORKFLOWS.md).
+It explains module discovery, entry identifiers, related entries, introductions and verse ranges.
+
 ## API coverage
 
 | Service | Versions | Capabilities | Upstream contracts |
@@ -94,6 +102,7 @@ GetBible API usage agreement.
 | `get_scripture` | Retrieve a complete translation, book, or chapter with a consistency-checked hash. |
 | `query_verses` | Resolve selected/grouped verses, retaining native version-specific data. |
 | `search_verses` | Search scripture with the upstream filters and pagination. |
+| `search_dictionary_entries` | Find a bounded page of dictionary entry IDs by key, alias or index search text; fetch definitions through the documented entry operation. |
 | `get_hash` | Read one translation, book, or chapter `.sha` value. |
 | `get_hash_manifest` | Read bulk checksum data for scheduled cache sweeps. |
 | `check_for_updates` | Compare stored hashes and receive exact invalidation actions. |
@@ -114,6 +123,7 @@ several versions.
 - `getbible://docs/api` — complete integration guide
 - `getbible://docs/cache-policy`
 - `getbible://docs/usage-policy`
+- `getbible://docs/study-workflows` — dictionary entries, relationships and commentary coverage
 - `getbible://openapi/{service}/{version}` — complete contracts, for example `getbible://openapi/search/v3`
 
 ### Prompt
@@ -175,7 +185,7 @@ Python, JavaScript and PHP applications can connect to the same MCP endpoint usi
 compatible client. This project ships one Python server package; npm/Composer server packages are
 not required. Ordinary applications can also call the existing REST endpoints directly. The MCP
 endpoint uses versioned JSON-RPC discovery and tool requests. The documentation under `site/v2/` describes
-MCP package 2.0 and covers every supported upstream API version.
+MCP package 2.x and covers every supported upstream API version.
 
 ## Python library interface
 
@@ -231,6 +241,12 @@ chmod +x scripts/check
 The suite covers all bundled contracts, request validation and serialization, version-preserving
 responses, HTTP freshness, hash-consistent reads, MCP schema discovery, both transports, static
 documents, CLI behavior and release packaging. Tests use local fixtures and mock HTTP transports.
+
+To test the official service explicitly, run `.venv/bin/python scripts/check_endpoint.py`.
+Add `--upstreams` to perform representative read-only requests across all nine API contracts,
+and `--expect-version 2.1.0` when checking this release after deployment. The probe bounds requests,
+response sizes and timeouts; it never runs automatically in CI. A successful health response alone
+does not establish that API lookups work. See [client testing](docs/CLIENTS.md#verify-a-remote-endpoint).
 
 ## Repository layout
 

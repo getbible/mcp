@@ -12,6 +12,7 @@ ManifestKind = Literal["all_translations", "translation", "book"]
 BibleVersion = Literal["v2", "v3"]
 ApiVersion = Literal["v1", "v2", "v3"]
 ServiceName = Literal["api", "query", "search", "dictionaries", "commentaries", "bookmarks"]
+DictionaryMatch = Literal["exact", "prefix", "contains"]
 
 
 class StrictModel(BaseModel):
@@ -73,6 +74,21 @@ class ApiResult(StrictModel):
 
     operation_id: str
     data: Any
+    source: SourceInfo
+    cache: CacheAdvice
+
+
+class DictionarySearchResult(StrictModel):
+    """A bounded selection of unchanged records from a freshly fetched dictionary index."""
+
+    dictionary: str
+    query: str
+    match: DictionaryMatch
+    entries: list[dict[str, Any]] = Field(max_length=100)
+    total: int = Field(ge=0)
+    count: int = Field(ge=0, le=100)
+    offset: int = Field(ge=0)
+    next_offset: int | None = Field(default=None, ge=0)
     source: SourceInfo
     cache: CacheAdvice
 

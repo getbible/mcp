@@ -1,0 +1,77 @@
+{
+  "format": "getbible-plugin-submission-handoff",
+  "format_version": 1,
+  "status": "requires-operator-completion",
+  "target_runtime_version": "2.1.0",
+  "plugin_package_version": "1.0.0",
+  "purpose": "GetBible-owned handoff data for completing the OpenAI submission portal. This is not an official portal upload schema or a record of approval.",
+  "listing": {
+    "name": "GetBible",
+    "short_description": "Read and study the Bible with scripture search, dictionaries, commentaries and public topics.",
+    "long_description": "GetBible brings read-only Bible study tools into your conversation. Retrieve passages, compare available translations and API versions, search scripture, inspect original-language annotations where supplied, and consult published dictionaries, commentaries and public bookmark topics. The tools preserve returned verse data and identify the sources used. Study guidance connects these resources through references and identifiers actually present in the data, keeps quotations separate from interpretation, and reports missing coverage. One connection covers Bible, reference-query and search APIs v2/v3, plus dictionaries, commentaries and bookmarks v1. Public access is free without an account, subject to traffic limits. Content remains subject to its publisher's rights.",
+    "website_url": "https://getbible.life/",
+    "support_url": "https://github.com/getbible/mcp/issues",
+    "privacy_policy_url": "https://github.com/getbible/mcp/blob/main/docs/PRIVACY.md",
+    "terms_url": "https://github.com/getbible/mcp/blob/main/docs/TERMS.md",
+    "logo_path": "assets/logo.png"
+  },
+  "connection": {
+    "submission_type": "With MCP",
+    "url_type": "Universal",
+    "server_url": "https://mcp.getbible.net/",
+    "transport": "streamable-http",
+    "authentication": "none",
+    "custom_ui": false,
+    "reviewer_credentials_required": false,
+    "notes": "Use the domain root exactly. Do not append /mcp or an API version. Optional administrator-issued tokens are not required for anonymous public access."
+  },
+  "starter_prompts": [
+    "Read John 3:16-18 in the King James Version and identify the sources.",
+    "Find passages containing the phrase love one another in the King James Version.",
+    "Help me study John 3:16 using the original-language annotations and available dictionary entries.",
+    "Find published commentary covering John 3:16 and distinguish it from the Bible text.",
+    "Find public bookmark topics associated with John 3:16 and read their cited passages."
+  ],
+  "test_cases_path": "test-cases.json",
+  "release_notes": "Initial GetBible plugin submission using the official read-only MCP endpoint, with discovery, reference lookup, search, study-resource workflows and source-preserving guidance. API hosting and the Python package remain independently maintained. Review evidence must identify the runtime and plugin revisions actually tested.",
+  "operator_actions": [
+    {
+      "field": "developer_identity",
+      "action": "Select the verified GetBible publisher identity in the owning OpenAI organization and confirm Apps Management write access."
+    },
+    {
+      "field": "privacy_policy_url",
+      "action": "Complete and approve docs/PRIVACY.md with the deployed service's actual retention timelines and private contact route, remove its draft status, and verify the listed public URL after merge. Do not submit the proposed policy until those hosting facts are confirmed."
+    },
+    {
+      "field": "terms_url",
+      "action": "Review and approve docs/TERMS.md, remove its draft status when complete, and verify the listed public URL after merge. Confirm it preserves the rights and conditions attached to scripture and study content; the software license alone is not a substitute."
+    },
+    {
+      "field": "support_url",
+      "action": "Confirm that the public GitHub issue tracker is the intended technical-support channel and provide the administrator contact route for access-token requests. Do not ask users to post tokens in issues."
+    },
+    {
+      "field": "category_and_availability",
+      "action": "Select a suitable available directory category and the countries approved by the publisher."
+    },
+    {
+      "field": "domain_verification",
+      "action": "Obtain the portal token and ask the API operator to serve the required challenge. The MCP hostname or its allowed parent origin https://getbible.net can be used; confirm the chosen origin before entering it."
+    },
+    {
+      "field": "runtime_readiness",
+      "action": "Have the API operator confirm MCP 2.1.0 is deployed. Run scripts/check_endpoint.py with --expect-version 2.1.0, then with --upstreams to test representative calls across all nine API contracts. Confirm discovery exposes 13 tools including search_dictionary_entries."
+    },
+    {
+      "field": "test_evidence",
+      "action": "Run the test cases through the real ChatGPT developer connection and supported clients where the published plugin will be offered. Record observed tools, results, errors and revisions; the test-case file contains expected behavior, not claims of passing execution. Test the optional local package through its documented supported-client flow."
+    }
+  ],
+  "publishing_notes": {
+    "approval_required": true,
+    "publish_after_approval": true,
+    "metadata_updates": "Published MCP metadata is reviewed as a snapshot. Scan Tools, submit a new version and publish the approved version after metadata changes. A PyPI release or API deployment does not publish a directory update.",
+    "guide": "https://developers.openai.com/plugins/deploy/submission"
+  }
+}

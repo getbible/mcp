@@ -6,6 +6,7 @@ import asyncio
 import json
 import math
 import re
+import unicodedata
 from datetime import UTC, datetime
 from typing import Any, NoReturn, cast
 
@@ -18,6 +19,8 @@ from getbible_mcp.models import (
     ApiResult,
     ApiVersion,
     BibleVersion,
+    DictionaryMatch,
+    DictionarySearchResult,
     HashResult,
     ManifestKind,
     ManifestResult,
@@ -104,6 +107,14 @@ def _bible_version(value: str) -> BibleVersion:
     if value not in {"v2", "v3"}:
         raise InvalidRequestError("api_version must be v2 or v3")
     return cast(BibleVersion, value)
+
+
+def _dictionary_search_term(value: str) -> str:
+    """Define the MCP's matching rule independently of the index builder's algorithm."""
+    decomposed = unicodedata.normalize("NFD", value.strip())
+    return "".join(
+        character for character in decomposed if not unicodedata.category(character).startswith("M")
+    ).casefold()
 
 
 class GetBibleClient:
@@ -379,6 +390,96 @@ class GetBibleClient:
         result = await self.call_api_operation("api", version, operation, parameters)
         return MappingResult(
             data=result.data, source=result.source, hash_guidance=CACHE_POLICY, cache=result.cache
+        )
+
+    async def search_dictionary_entries(
+        self,
+        dictionary: str,
+        query: str,
+        match: DictionaryMatch = "exact",
+        limit: int = 20,
+        offset: int = 0,
+    ) -> DictionarySearchResult:
+        """Search a fresh index locally and return a bounded page in index order.
+
+        Keys, search terms and aliases use Unicode NFD, removal of combining marks,
+        and case folding. An exact, case-sensitive entry ID also matches. This is
+        MCP-side filtering, not an upstream query endpoint or a definition search.
+        """
+        if not isinstance(query, str) or not query.strip() or len(query) > 256:
+            raise InvalidRequestError("query must be a nonblank string of at most 256 characters")
+        query = query.strip()
+        normalized_query = _dictionary_search_term(query)
+        if not normalized_query:
+            raise InvalidRequestError("query must contain a character other than combining marks")
+        if not isinstance(match, str) or match not in {"exact", "prefix", "contains"}:
+            raise InvalidRequestError("match must be exact, prefix or contains")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise InvalidRequestError("limit must be an integer between 1 and 100")
+        if type(offset) is not int or offset < 0:
+            raise InvalidRequestError("offset must be a nonnegative integer")
+
+        result = await self.call_api_operation(
+            "dictionaries", "v1", "getDictionaryIndex", {"dictionary": dictionary}
+        )
+
+        def invalid_index() -> UpstreamError:
+            return self._response_error(
+                "GetBible returned an invalid dictionary index; expected the requested "
+                "dictionary and entries with nonempty id, key and search strings",
+                result.source,
+                result.operation_id,
+                data=result.data,
+            )
+
+        data = result.data
+        if (
+            not isinstance(data, dict)
+            or data.get("schema") != "getbible-dictionary-index-v1"
+            or data.get("dictionary") != dictionary
+            or not isinstance(data.get("entries"), list)
+        ):
+            raise invalid_index()
+
+        selected: list[dict[str, Any]] = []
+        total = 0
+        for entry in data["entries"]:
+            if not isinstance(entry, dict) or any(
+                not isinstance(entry.get(name), str) or not entry[name].strip()
+                for name in ("id", "key", "search")
+            ):
+                raise invalid_index()
+            aliases = entry.get("aliases", [])
+            if not isinstance(aliases, list) or any(not isinstance(alias, str) for alias in aliases):
+                raise invalid_index()
+            candidates = [entry["key"], entry["search"], *aliases]
+            matched = query == entry["id"]
+            for candidate in candidates:
+                term = _dictionary_search_term(candidate)
+                if (
+                    (match == "exact" and term == normalized_query)
+                    or (match == "prefix" and term.startswith(normalized_query))
+                    or (match == "contains" and normalized_query in term)
+                ):
+                    matched = True
+                    break
+            if matched:
+                if total >= offset and len(selected) < limit:
+                    selected.append(entry)
+                total += 1
+
+        next_offset = offset + len(selected)
+        return DictionarySearchResult(
+            dictionary=dictionary,
+            query=query,
+            match=match,
+            entries=selected,
+            total=total,
+            count=len(selected),
+            offset=offset,
+            next_offset=next_offset if next_offset < total else None,
+            source=result.source,
+            cache=result.cache,
         )
 
     async def get_hash(self, scope: ScopeSpec) -> HashResult:
