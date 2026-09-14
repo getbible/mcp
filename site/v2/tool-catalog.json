@@ -8,6 +8,7 @@
     {"name": "get_scripture", "purpose": "Read a whole translation, book or chapter with before/after scope SHA-1 consistency checks."},
     {"name": "query_verses", "purpose": "Resolve selected or grouped references, preserving native data without a chapter-hash envelope."},
     {"name": "search_verses", "purpose": "Search with matching modes, book/scope filters, exclusions, proximity, sorting and pagination."},
+    {"name": "search_dictionary_entries", "purpose": "Find a bounded page of exact entry IDs by dictionary key, alias or index search text, preserving original records and freshness."},
     {"name": "get_hash", "purpose": "Read a static scripture translation, book or chapter SHA-1."},
     {"name": "get_hash_manifest", "purpose": "Read bulk scripture checksums for cache synchronization."},
     {"name": "check_for_updates", "purpose": "Compare stored hashes and identify invalidation actions without extending expired data."},

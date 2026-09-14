@@ -47,12 +47,14 @@ async def test_stdio_subprocess_discovers_latest_protocol_and_all_tools() -> Non
         "list_translations",
         "query_verses",
         "search_verses",
+        "search_dictionary_entries",
     }
     assert all(tool.annotations and tool.annotations.read_only_hint for tool in tools.tools)
     assert {str(resource.uri) for resource in resources.resources} == {
         "getbible://docs/api",
         "getbible://docs/cache-policy",
         "getbible://docs/usage-policy",
+        "getbible://docs/study-workflows",
         "getbible://openapi/api/v2",
         "getbible://openapi/api/v3",
         "getbible://openapi/query/v2",

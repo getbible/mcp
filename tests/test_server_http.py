@@ -35,6 +35,7 @@ TOOL_NAMES = {
     "list_translations",
     "query_verses",
     "search_verses",
+    "search_dictionary_entries",
 }
 API_VERSIONS = {
     "api": ("v2", "v3"),
@@ -48,6 +49,7 @@ DOC_URIS = {
     "getbible://docs/api",
     "getbible://docs/cache-policy",
     "getbible://docs/usage-policy",
+    "getbible://docs/study-workflows",
 }
 CONTRACT_URIS = {
     f"getbible://openapi/{service}/{version}"
@@ -111,13 +113,19 @@ async def test_streamable_http_exposes_versioned_tools_and_readable_contracts(pa
         assert {tool.name for tool in tools.tools} == TOOL_NAMES
         assert {str(resource.uri) for resource in resources.resources} == DOC_URIS | CONTRACT_URIS
         assert {prompt.name for prompt in prompts.prompts} == {"design_getbible_integration"}
+        assert session.server_info is not None
+        assert session.server_info.description
+        assert session.server_info.icons
+        assert session.server_info.icons[0].src.startswith("data:image/png;base64,")
 
         for tool in tools.tools:
             assert tool.annotations is not None
             assert tool.annotations.read_only_hint is True
             assert tool.annotations.destructive_hint is False
             assert tool.annotations.idempotent_hint is True
-            assert tool.annotations.open_world_hint is True
+            assert tool.annotations.open_world_hint is (
+                tool.name not in {"discover_apis", "describe_api_operation"}
+            )
             Draft202012Validator.check_schema(tool.input_schema)
             if tool.output_schema is not None:
                 Draft202012Validator.check_schema(tool.output_schema)

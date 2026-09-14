@@ -134,6 +134,12 @@ a path value overrides both.
 
 ## Discover and read dictionary entries
 
+Start with the catalog. Choose the requested source and language from its `dictionaries` array;
+use the returned `id`, not its display name. These calls demonstrate a Strong's Greek module only
+after its catalog record has been discovered. For a complete word-study procedure, including
+ambiguous headwords and relationship traversal, read the MCP resource
+`getbible://docs/study-workflows` or the [study workflow guide](https://github.com/getbible/mcp/blob/main/docs/STUDY_WORKFLOWS.md).
+
 ```json
 {
   "tool": "call_api_operation",
@@ -141,17 +147,38 @@ a path value overrides both.
 }
 ```
 
+Read the selected module's provenance and content licence:
+
 ```json
 {
   "tool": "call_api_operation",
   "arguments": {
     "service": "dictionaries",
     "api_version": "v1",
-    "operation_id": "getDictionaryIndex",
+    "operation_id": "getDictionaryMetadata",
     "parameters": {"dictionary": "strongsgreek"}
   }
 }
 ```
+
+```json
+{
+  "tool": "search_dictionary_entries",
+  "arguments": {
+    "dictionary": "strongsgreek",
+    "query": "G3056",
+    "match": "exact",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+The helper fetches the index fresh and returns a bounded page of unchanged matching index records.
+It searches headwords, IDs and aliases, not definition text. Choose `prefix` or `contains` for a
+broader candidate list and follow returned pagination. Pass the matching record's **exact `id`** as `entry`;
+`G3056` below is appropriate only if it is the discovered record or an actual source Strong's token.
+The same key can have several definitions with distinct `id` and `occurrence` values.
 
 ```json
 {
@@ -165,10 +192,40 @@ a path value overrides both.
 }
 ```
 
-Use IDs from the returned catalog/index for other dictionaries or words. Read module metadata for
-provenance and licensing before redistributing definitions.
+Read the definition in `data.text`. Its optional `see_also` and `backlinks` arrays contain outgoing
+and incoming links within the same dictionary. Retrieve a linked word using its supplied `id` and
+the same `dictionary`, preserving the direction of the relationship. These links do not themselves
+assert synonymy or etymology. Use the source texts to explain the relationship, with attribution.
+Stop cycles by remembering visited dictionary/id pairs and follow only links relevant to the question.
+
+Pass a scripture citation's `references[].ref` to `query_verses` with the user's translation and
+explicit Bible API version. A reference with no `verse` covers a whole chapter; a `verses` array
+preserves all cited verses. Do not turn an English word into an assumed Greek/Hebrew lemma.
+
+Integrations needing a full index can call `getDictionaryIndex` through `call_api_operation` with
+`service="dictionaries"`, `api_version="v1"` and `parameters={"dictionary":"strongsgreek"}`.
+That generic operation returns the entire unpaginated index; never claim a search was exhaustive
+after reading a truncated response. Prefer `search_dictionary_entries` for ordinary word lookups.
+`search_verses` searches scripture text, and the static dictionary API has no `?q=` search route.
 
 ## Commentary coverage and chapter content
+
+Discover the module before selecting its coverage:
+
+```json
+{
+  "tool": "call_api_operation",
+  "arguments": {
+    "service": "commentaries",
+    "api_version": "v1",
+    "operation_id": "listCommentaries"
+  }
+}
+```
+
+The following example uses `mhc` after selecting that returned module. Read
+`getCommentaryMetadata` with `{"commentary":"mhc"}` for its author/source, language, licence and
+versification, then fetch coverage:
 
 ```json
 {
@@ -182,6 +239,9 @@ provenance and licensing before redistributing definitions.
 }
 ```
 
+Select a `book` and `chapter` actually present in `data.books`. The John 3 example is valid only
+when the selected module lists book `43` and chapter `3`.
+
 ```json
 {
   "tool": "call_api_operation",
@@ -194,7 +254,15 @@ provenance and licensing before redistributing definitions.
 }
 ```
 
-A discovered chapter 0 is the book introduction; retain verse 0 chapter introductions too.
+For commentary on verse 16, include every entry where `(entry.verses ?? [entry.verse]).includes(16)`.
+A range anchored at verse 14 can include verse 16. Preserve multiple matching entries. A discovered
+chapter 0 is the book introduction; retain verse 0 chapter introductions as introductory context.
+Cross-chapter comments can appear in both chapter documents: preserve coverage and avoid repeating
+the same quotation. Missing coverage should be reported, not replaced with a different passage.
+
+Retrieve the Bible passage separately through `query_verses`; label the commentary as its author's
+interpretation and cite the module and returned `source.url`. Its scripture `references` can also
+be followed through the query API. The chapter's original fields, ranges and references stay intact.
 
 ## Public topic bookmarks
 

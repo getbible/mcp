@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from importlib.resources import files
 from typing import Annotated, Any, Literal
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from mcp.types import CallToolResult, Icon, TextContent, ToolAnnotations
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -23,9 +25,16 @@ from getbible_mcp import __version__
 from getbible_mcp.client import CACHE_POLICY, GetBibleClient, GetBibleError, UpstreamError
 from getbible_mcp.config import Settings
 from getbible_mcp.contracts import ContractRegistry
-from getbible_mcp.guidance import API_GUIDE, CACHE_GUIDE, SERVER_INSTRUCTIONS, USAGE_GUIDE
+from getbible_mcp.guidance import (
+    API_GUIDE,
+    CACHE_GUIDE,
+    SERVER_INSTRUCTIONS,
+    STUDY_GUIDE,
+    USAGE_GUIDE,
+)
 from getbible_mcp.models import (
     ApiResult,
+    DictionarySearchResult,
     HashResult,
     HashWatch,
     ManifestKind,
@@ -124,9 +133,21 @@ def create_runtime(
     )
     server = GetBibleMCP(
         name="GetBible",
+        title="GetBible",
+        description="Read and search Bible translations, dictionaries, commentaries and public topics.",
         version=__version__,
         instructions=SERVER_INSTRUCTIONS,
         website_url="https://getbible.life",
+        icons=[
+            Icon(
+                src="data:image/png;base64,"
+                + base64.b64encode(
+                    files("getbible_mcp").joinpath("assets", "icon.png").read_bytes()
+                ).decode("ascii"),
+                mime_type="image/png",
+                sizes=["230x230"],
+            )
+        ],
         lifespan=lifespan,
     )
     read_only = ToolAnnotations(
@@ -135,8 +156,9 @@ def create_runtime(
         idempotent_hint=True,
         open_world_hint=True,
     )
+    local_read_only = read_only.model_copy(update={"open_world_hint": False})
 
-    @server.tool(title="Discover GetBible APIs", annotations=read_only)
+    @server.tool(title="Discover GetBible APIs", annotations=local_read_only)
     def discover_apis(
         service: Service | None = None,
         api_version: ApiVersion | None = None,
@@ -152,7 +174,7 @@ def create_runtime(
             ]
         }
 
-    @server.tool(title="Describe GetBible API operations", annotations=read_only)
+    @server.tool(title="Describe GetBible API operations", annotations=local_read_only)
     def describe_api_operation(
         service: Service,
         api_version: ApiVersion,
@@ -218,6 +240,28 @@ def create_runtime(
             is_error=True,
             content=[TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
             structured_content=payload,
+        )
+
+    @server.tool(title="Find dictionary entry identifiers", annotations=read_only)
+    async def search_dictionary_entries(
+        dictionary: Annotated[str, Field(min_length=1)],
+        query: Annotated[str, Field(min_length=1, max_length=256)],
+        match: Literal["exact", "prefix", "contains"] = "exact",
+        limit: Annotated[int, Field(ge=1, le=100, strict=True)] = 20,
+        offset: Annotated[int, Field(ge=0, strict=True)] = 0,
+    ) -> DictionarySearchResult:
+        """Find entry IDs by key, alias, search text or ID in a discovered dictionary module.
+
+        Discover modules with dictionaries/v1/listDictionaries first. Fetches the current index
+        and filters it locally, returning a bounded page of unchanged records. Key, search and alias
+        matching ignores case and combining accents using Unicode NFD; IDs match exactly, including
+        case. This is not definition full-text search.
+        Exact is the default; use prefix or contains explicitly if needed. Follow next_offset
+        with the same inputs. Fetch definitions with dictionaries/v1/getDictionaryEntry and the
+        returned exact ID; see_also and backlinks are directed links, not guaranteed synonyms.
+        """
+        return await resolved_client.search_dictionary_entries(
+            dictionary, query, match=match, limit=limit, offset=offset
         )
 
     @server.tool(title="List GetBible translations", annotations=read_only)
@@ -416,6 +460,7 @@ def create_runtime(
         ("getbible://docs/api", "Complete GetBible integration guide", API_GUIDE),
         ("getbible://docs/cache-policy", "Cache expiry and synchronization", CACHE_GUIDE),
         ("getbible://docs/usage-policy", "Public access and publisher metadata", USAGE_GUIDE),
+        ("getbible://docs/study-workflows", "Dictionary and commentary study workflows", STUDY_GUIDE),
     ):
         register_document(uri, name, content, "text/markdown")
     for service, version in CONTRACTS:

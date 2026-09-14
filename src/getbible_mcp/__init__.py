@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from getbible_mcp.config import Settings
     from getbible_mcp.server import ServerRuntime
 
-__version__ = "2.0.2"
+__version__ = "2.1.0"
 __all__ = ["__version__", "create_app", "create_runtime"]
 
 
