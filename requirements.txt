@@ -10,9 +10,9 @@ click==8.5.0
 cryptography==50.0.1
 h11==0.16.0
 httpcore==1.0.9
-httpcore2==2.13.0
+httpcore2==2.13.1
 httpx==0.28.1
-httpx2==2.13.0
+httpx2==2.13.1
 idna==3.20
 jsonschema-specifications==2025.9.1
 jsonschema==4.26.0
