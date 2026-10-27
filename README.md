@@ -273,7 +273,7 @@ tests/                  Unit and protocol integration tests
 
 ## Versioning
 
-Package release 2.0.2 uses the stable official Python MCP SDK 2.2.0 and a host-selected HTTP endpoint.
+This package uses the stable official Python MCP SDK 2.3.0 and a host-selected HTTP endpoint.
 Package versions and upstream API versions are independent. Scripture tools default to v3; v2
 remains fully available through explicit version selection. Never mix upstream v2 and v3 payloads
 under one cache key.

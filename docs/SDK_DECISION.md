@@ -2,7 +2,7 @@
 
 ## Decision
 
-Maintain one Python MCP server using the stable official Model Context Protocol Python SDK 2.2.0,
+Maintain one Python MCP server using the stable official Model Context Protocol Python SDK 2.3.0,
 implementing the 2026-07-28 protocol specification. Publish its
 Python package for local stdio use and expose the same implementation as an embeddable ASGI library.
 JavaScript and PHP integrations use compatible MCP clients or call the existing REST APIs.
@@ -24,8 +24,8 @@ scripture data, the underlying REST endpoints remain a valid direct integration.
 
 | Version | Meaning |
 |---|---|
-| Python MCP SDK 2.2.0 | The stable official protocol library pinned in the dependency files |
-| `getbible-mcp` 2.0.0 | This server's package release |
+| Python MCP SDK 2.3.0 | The stable official protocol library pinned in the dependency files |
+| `getbible-mcp` 2.x | This server's independently versioned package |
 | HTTP endpoint path | Selected by the host; `/mcp` is the factory default, and `/` is supported. Upstream versions remain tool arguments. |
 | Tool `api_version` | The upstream contract: v3 by default or explicit v2 for scripture conveniences; v1 for study/bookmarks |
 
@@ -37,5 +37,5 @@ Official references:
 
 - [MCP SDKs](https://modelcontextprotocol.io/docs/sdk)
 - [Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-- [Stable Python SDK 2.2.0 release](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.2.0)
+- [Stable Python SDK 2.3.0 release](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.3.0)
 - [Python SDK documentation](https://py.sdk.modelcontextprotocol.io/)
