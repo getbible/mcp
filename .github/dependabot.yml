@@ -4,6 +4,21 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # These package pairs must move together to keep the production lock installable.
+    groups:
+      mcp-sdk:
+        patterns:
+          - mcp
+          - mcp-types
+      pydantic:
+        patterns:
+          - pydantic
+          - pydantic-core
+          - pydantic_core
+      httpx-transport:
+        patterns:
+          - httpx2
+          - httpcore2
   - package-ecosystem: github-actions
     directory: /
     schedule:
